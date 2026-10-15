@@ -593,9 +593,7 @@ Typical context: a Scrum team, a backlog with a few dozen open items, and refine
 
 ## License
 
-© 2026 Marius Kalder. All rights reserved.
-
-This repository is publicly accessible for viewing and educational purposes only. The code demonstrates an architectural approach to AI-assisted backlog refinement.
+This repository is shared publicly so you can read the code, learn from the approach, and reference it in portfolios or professional discussions. It is not released under an open-source license: © 2026 Marius Kalder, all rights reserved beyond what is explicitly granted below. The code demonstrates an architectural approach to AI-assisted backlog refinement.
 
 **You may:**
 
