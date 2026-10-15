@@ -12,15 +12,28 @@
 
 import { Octokit } from "@octokit/rest";
 
-const octokit = new Octokit({
-    auth: process.env.GITHUB_TOKEN,
-});
+// Lazily validated and created on first use, not at import time: importing this module (e.g.
+// transitively via agent.js, to use its pure functions in a test or script) must not require
+// GITHUB_OWNER/GITHUB_REPO/GITHUB_TOKEN to be set. Only actually calling listIssues()/getIssue()
+// does. Same error, same message, just raised when it's relevant instead of on every import.
+let client = null;
 
-const OWNER = process.env.GITHUB_OWNER;
-const REPO = process.env.GITHUB_REPO;
+function getClient() {
+    if (client) return client;
 
-if (!OWNER || !REPO) {
-    throw new Error("GITHUB_OWNER and GITHUB_REPO must be set in .env");
+    const owner = process.env.GITHUB_OWNER;
+    const repo = process.env.GITHUB_REPO;
+
+    if (!owner || !repo) {
+        throw new Error("GITHUB_OWNER and GITHUB_REPO must be set in .env");
+    }
+
+    client = {
+        octokit: new Octokit({ auth: process.env.GITHUB_TOKEN }),
+        owner,
+        repo,
+    };
+    return client;
 }
 
 /**
@@ -30,9 +43,10 @@ if (!OWNER || !REPO) {
  * @returns {Promise<Array>}
  */
 export async function listIssues(label = null) {
+    const { octokit, owner, repo } = getClient();
     const params = {
-        owner: OWNER,
-        repo: REPO,
+        owner,
+        repo,
         state: "open",
         per_page: 100,
     };
@@ -60,9 +74,10 @@ export async function listIssues(label = null) {
  * @returns {Promise<Object>}
  */
 export async function getIssue(number) {
+    const { octokit, owner, repo } = getClient();
     const { data } = await octokit.issues.get({
-        owner: OWNER,
-        repo: REPO,
+        owner,
+        repo,
         issue_number: number,
     });
 
