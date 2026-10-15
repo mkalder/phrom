@@ -190,6 +190,20 @@ for (const [key, v] of [...perCriterion.entries()].sort()) {
 }
 console.log();
 
+// CI gate: an expected gap not found is always a regression. An unexpected extra finding is only
+// a regression without --ai: the AI path can legitimately surface findings the seed did not
+// anticipate (see evidenz-2026-10-08.md, category A/B); the deterministic path should match exactly.
+const hasMissed = evaluated.some((r) => r.missed.length > 0);
+const hasUnexpectedExtra = !useAI && evaluated.some((r) => r.extra.length > 0);
+if (hasMissed || hasUnexpectedExtra) {
+    console.log(
+        useAI
+            ? 'Regression: at least one expected gap was not found.\n'
+            : 'Regression: deterministic checks no longer match the seed expectations exactly.\n'
+    );
+    process.exitCode = 1;
+}
+
 if (writeJson) {
     fs.mkdirSync('output', { recursive: true });
     const out = path.join('output', `eval-seed-${new Date().toISOString().replace(/[:.]/g, '-')}.json`);

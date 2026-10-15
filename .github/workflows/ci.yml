@@ -1,0 +1,35 @@
+name: CI
+
+# Runs on every push and pull request. No secrets and no network access are needed: the unit
+# tests (test/*.test.js) are pure functions, and `npm run eval-seed` compares Phrom's deterministic
+# checks against seed/issues.json locally — it does not call GitHub or Ollama. The AI-dependent
+# checks (Ollama, model qwen3:30b-instruct) cannot run on a standard GitHub-hosted runner and are
+# therefore not part of this workflow; verify them locally with `node scripts/eval-seed.js --ai`
+# before a release.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Unit tests (node:test)
+        run: npm test
+
+      - name: Regression test against the seed set (deterministic checks)
+        run: npm run eval-seed

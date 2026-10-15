@@ -9,13 +9,13 @@
     "phrom": "./src/cli.js"
   },
   "type": "module",
-  "description": "**An AI agent to prepare GitHub issues for backlog refinement.**",
+  "description": "A CLI pipeline that checks GitHub Issues against a rule set before backlog refinement, combining deterministic rules with local AI checks.",
   "main": "index.js",
   "directories": {
     "doc": "doc"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "node --test",
     "phrom": "node src/cli.js",
     "demo": "node scripts/demo.js",
     "seed": "npm run seed:labels && npm run seed:issues",
@@ -23,7 +23,8 @@
     "seed:issues": "node seed/seed.js",
     "list": "node src/cli.js list",
     "run": "node src/cli.js run",
-    "status": "node src/cli.js status"
+    "status": "node src/cli.js status",
+    "eval-seed": "node scripts/eval-seed.js"
   },
   "repository": {
     "type": "git",
