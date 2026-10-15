@@ -593,9 +593,7 @@ Typischer Kontext: ein Scrum-Team, ein Backlog mit einigen Dutzend offenen Items
 
 ## Lizenz
 
-© 2026 Marius Kalder. Alle Rechte vorbehalten.
-
-Dieses Repository ist ausschließlich zum Ansehen und für Bildungszwecke öffentlich zugänglich. Der Code demonstriert einen architektonischen Ansatz für KI-gestütztes Backlog Refinement.
+Dieses Repository ist öffentlich zugänglich, damit du den Code lesen, aus dem Ansatz lernen und in Portfolios oder fachlichen Diskussionen darauf verweisen kannst. Es steht nicht unter einer Open-Source-Lizenz: © 2026 Marius Kalder, alle Rechte vorbehalten, soweit nicht ausdrücklich unten eingeräumt. Der Code demonstriert einen architektonischen Ansatz für KI-gestütztes Backlog Refinement.
 
 **Du darfst:**
 
