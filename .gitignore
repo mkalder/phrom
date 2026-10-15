@@ -3,6 +3,7 @@ reset_backlog
 node_modules
 archive
 audit
+output
 
 # Env
 .env
