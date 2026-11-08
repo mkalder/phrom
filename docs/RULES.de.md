@@ -4,6 +4,7 @@
 **Datum:** 2026-10-08 (Überarbeitung des Dokuments; erstmals veröffentlicht für 0.3.1 am 2026-10-07)
 **Änderungen gegenüber 0.3.0:** Beschreibungen und Bestehensbedingungen in den JSON-Dateien entsprechen jetzt der Implementierung; Punkte und Pflichtmarkierungen sind unverändert.
 **Überarbeitung des Dokuments am 2026-10-08:** Beispiele und Grenzen beruhen auf dem Testtag vom 2026-10-08; die genauen Auslösebedingungen von `technical-scope` und `impact-analysis` und ihre bekannten Nebenwirkungen sind dokumentiert. Kriterien, Punkte und Pflichtmarkierungen sind unverändert.
+**Epic-Kriterien erweitert am 2026-11-08:** Vier neue deterministische Kriterien (`epic-context`, `epic-boundary`, `epic-owner`, `epic-stakeholders`) wurden zu Epic hinzugefügt; die Punktsumme stieg von 73 auf 113. Siehe [ADR-005](../adr/en/ADR-005-epic-criteria-coverage.en.md).
 **Geltungsbereich:** Bewertung von GitHub Issues vor dem Refinement
 
 Dieses Dokument beschreibt, was Phrom prüft, wie der Score berechnet wird und wann ein Issue als „Ready“ gilt. Es ist **keine Definition of Done** und entscheidet nicht über die Sprint-Reife. Die Kriterien selbst liegen maschinenlesbar in `references/criteria/*.json`; von dort werden Punktgewichte und Pflichtmarkierungen gelesen.
@@ -67,7 +68,7 @@ Beispiel vom Testtag am 2026-10-08: Issue #19 hat kein Label, wurde vom Modell a
 
 - Ein Kriterium vergibt seine Punkte entweder vollständig oder gar nicht.
 - Erreichbar sind nur Kriterien, die implementiert sind (`implemented` ist nicht `false`) und Punkte tragen.
-- Die Punktsumme je Typ steht in `scoring.totalPoints` der jeweiligen JSON-Datei. Story und Task ergeben 100, Epic 73 und Bug 105 Punkte; der Score wird daher auf 100 normiert.
+- Die Punktsumme je Typ steht in `scoring.totalPoints` der jeweiligen JSON-Datei. Story und Task ergeben 100, Epic 113 und Bug 105 Punkte; der Score wird daher auf 100 normiert.
 
 **Ready Gate:** Für jedes Pflichtkriterium muss ein Ergebnis vorliegen, **und** es muss bestehen. Fehlt ein Ergebnis, etwa weil Ollama nicht erreichbar ist, gilt das Kriterium als nicht bestanden. Das Issue wird dann als 🔴 markiert.
 
@@ -90,7 +91,7 @@ Weil `story-links` bei nicht leerem Body immer besteht, erreicht eine Story mit 
 | --- | ---: | ---: | ---: | :---: |
 | Story | 47 | 100 | 47 % | ✅ |
 | Task | 90 | 100 | 90 % | – |
-| Epic | 73 | 73 | 100 % | – |
+| Epic | 113 | 113 | 100 % | – |
 | Bug | 85 | 105 | 81 % | – |
 
 ---
@@ -141,7 +142,7 @@ Stories können ohne Epic existieren, etwa Bugfixes, Spikes oder kleine Features
 | `severity` | KI | 10 | ✅ |
 | `reproducibility` | KI | 10 | – |
 
-### Epic (73 Punkte, auf 100 normiert)
+### Epic (113 Punkte, auf 100 normiert)
 
 | Kriterium | Art | Punkte | Pflicht |
 | --- | --- | ---: | :---: |
@@ -151,6 +152,10 @@ Stories können ohne Epic existieren, etwa Bugfixes, Spikes oder kleine Features
 | `size-risk` | KI | 17 | ✅ |
 | `epic-goal` | KI | 8 | ✅ |
 | `epic-benefit` | KI | 8 | ✅ |
+| `epic-context` | Regel | 10 | ✅ |
+| `epic-boundary` | Regel | 10 | ✅ |
+| `epic-owner` | Regel | 10 | ✅ |
+| `epic-stakeholders` | Regel | 10 | ✅ |
 
 ---
 
@@ -211,6 +216,14 @@ Bekannte Nebenwirkung: Das Wort „rollback“ allein löst den zweiten Schritt 
 **`benefit-statement`** besteht, wenn ein Nutzenabschnitt (Benefit, Value, Impact, Outcome als Überschrift oder Label) mit mindestens fünf Wörtern vorhanden ist oder der Text „benefit is/will be“ enthält. Geprüft wird nur die Struktur; ob der Nutzen verständlich ist, bewertet `epic-benefit` (KI). Eine Quantifizierung wird als Hinweis ausgegeben.
 
 **`story-list`** besteht, wenn mindestens **zwei** Issue-Referenzen (`#n`) im Body vorkommen oder ein Abschnitt namens „Stories“, „Child Stories“, „Candidate Stories“ oder „Slices“ mindestens **zwei** Listenpunkte enthält.
+
+**`epic-context`** teilt sich Vertrag und Implementierung mit `story-context` (`checkContext`): Produkt und Zielgruppe müssen als ganze Wörter benannt sein. Wie bei Story reichen zufällige Treffer (zum Beispiel „portal“ und „customer“ irgendwo im Text); ein expliziter „Context“-Abschnitt ist nicht erforderlich.
+
+**`epic-boundary`** besteht, wenn sowohl ein „In Scope“- als auch ein „Out of Scope“-Abschnitt (Überschrift oder Label) vorhanden ist und jeder mindestens drei Wörter echten Inhalt enthält.
+
+**`epic-owner`** besteht, wenn ein „Owner“-Abschnitt (Überschrift oder Label) vorhanden und nicht leer ist. Eine Rolle oder ein Teamname wird erwartet (zum Beispiel „Owner: Jane Doe, Platform Team“), wird aber nicht getrennt vom restlichen Abschnitt geparst.
+
+**`epic-stakeholders`** besteht, wenn ein „Stakeholders“-Abschnitt (Überschrift oder Label) vorhanden und nicht leer ist. Eine oder mehrere Stakeholder-Gruppen können aufgeführt werden, zum Beispiel als Aufzählung.
 
 ---
 
@@ -291,7 +304,7 @@ Eine Story besteht alles außer `ac-testability` (17 Punkte, Pflicht). Ihr Score
 - **Schlüsselwörter:** Produkt und Zielgruppe werden über Wortlisten erkannt; ganze Wörter, Pluralformen und deutsche Endungen werden toleriert. Ein Produkt, das nicht in der Liste steht, zum Beispiel „Dashboard“, wird nicht erkannt und lässt `story-context` scheitern.
 - **Sprachen:** Formate und Schlüsselwörter sind auf Deutsch und Englisch ausgelegt.
 - **Epic-Verweis:** Die Existenz des Epics und der Rückverweis in GitHub werden nicht geprüft.
-- **KI-Einschätzungen** sind begründete Meinungen. Sie können falsch sein, und ihre Qualität hängt vom Modell ab. Am Testtag 2026-10-08 stimmten die regelbasierten Checks exakt mit dem Seed-Testset aus 18 Issues überein (18/18 Issues, 31/31 erwartete Lücken, keine zusätzlichen Befunde). Mit KI wurden alle 45 prüfbaren erwarteten Lücken gefunden, keines der 5 Kontroll-Issues wurde markiert, und es gab 15 zusätzliche Befunde bei schwachen Issues. Für vier weitere erwartete Epic-Lücken gibt es noch kein Kriterium (siehe Geplante Kriterien). Die Prompts wurden an denselben Issues abgestimmt; ein unabhängiges Testset steht aus.
+- **KI-Einschätzungen** sind begründete Meinungen. Sie können falsch sein, und ihre Qualität hängt vom Modell ab. Am Testtag 2026-10-08 stimmten die regelbasierten Checks exakt mit dem Seed-Testset aus 18 Issues überein (18/18 Issues, 31/31 erwartete Lücken, keine zusätzlichen Befunde). Mit KI wurden alle 45 prüfbaren erwarteten Lücken gefunden, keines der 5 Kontroll-Issues wurde markiert, und es gab 15 zusätzliche Befunde bei schwachen Issues. Für eine weitere erwartete Epic-Lücke gibt es noch kein Kriterium (Success Measure; siehe Geplante Kriterien). Die Prompts wurden an denselben Issues abgestimmt; ein unabhängiges Testset steht aus.
 - **KI-Begründungen können vom Kriterium abweichen:** Zum Beispiel kann eine fehlende Aussage als „kein Risiko“ gelesen werden (`technical-feasibility` bestand für #9, weil „no external dependencies or risks are mentioned“), oder ein fehlendes Label kann als Prozessproblem gewertet werden (`rollback-risk` bei #19).
 - **Begründungstexte werden nicht ausgewertet:** Die Auswertung prüft, welche Kriterien scheitern, nicht, ob die angezeigte Begründung stimmt (siehe `technical-scope` und `impact-analysis` oben).
 - **Kein Ausfallstatus:** Fällt das Modell aus, wird das Issue fail-closed als 🔴 geführt. Ein eigener Status `incomplete` ist geplant.
@@ -308,7 +321,7 @@ Diese Kriterien sind in `references/criteria/*.json` mit `implemented: false` be
 | Story | `independence` (Überschneidung mit anderen Stories per Ähnlichkeitssuche) |
 | Task | `task-context`, `task-dependencies` |
 | Bug | `bug-impact` |
-| Epic | `epic-context`, `epic-boundary`, `epic-success-measure`, `epic-slicing`, `epic-owner`, `epic-stakeholders`, `epic-company-goal`, `epic-milestones`, `epic-timeline`, `epic-risks`, `epic-dependencies`, `epic-child-story-status` |
+| Epic | `epic-success-measure`, `epic-slicing`, `epic-company-goal`, `epic-milestones`, `epic-timeline`, `epic-risks`, `epic-dependencies`, `epic-child-story-status` |
 
 Weitere geplante Regeln aus den JSON-Dateien:
 

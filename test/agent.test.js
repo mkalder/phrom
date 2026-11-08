@@ -68,11 +68,14 @@ test('runDeterministicChecks: dispatches the 4 bug checks for type "bug"', () =>
   );
 });
 
-test('runDeterministicChecks: dispatches the 3 epic checks for type "epic"', () => {
+test('runDeterministicChecks: dispatches the 7 epic checks for type "epic"', () => {
   const result = runDeterministicChecks({ body: '' }, 'epic');
   assert.deepEqual(
     Object.keys(result).sort(),
-    ['benefit-statement', 'goal-statement', 'story-list'].sort()
+    [
+      'benefit-statement', 'goal-statement', 'story-list',
+      'epic-context', 'epic-boundary', 'epic-owner', 'epic-stakeholders',
+    ].sort()
   );
 });
 
@@ -161,6 +164,43 @@ test('evaluate: a failed non-required check lowers the score but does not fail t
   const result = evaluate({ deterministicChecks, modelChecks }, 'story');
   assert.equal(result.gateFailed, false);
   assert.equal(result.score, 80); // lost 10 + 10 of 100
+});
+
+// ---------------------------------------------------------------------------
+// evaluate: epic scoring with the four criteria added in this change
+// (epic-context, epic-boundary, epic-owner, epic-stakeholders — all required, 10 pts each)
+// ---------------------------------------------------------------------------
+
+const allEpicChecksPassed = {
+  'goal-statement': { passed: true },
+  'benefit-statement': { passed: true },
+  'story-list': { passed: true },
+  'epic-context': { passed: true },
+  'epic-boundary': { passed: true },
+  'epic-owner': { passed: true },
+  'epic-stakeholders': { passed: true },
+};
+const allEpicModelChecksPassed = {
+  'size-risk': { passed: true },
+  'epic-goal': { passed: true },
+  'epic-benefit': { passed: true },
+};
+
+test('evaluate: an epic missing only epic-owner fails the Ready Gate (owner is required)', () => {
+  const deterministicChecks = { ...allEpicChecksPassed, 'epic-owner': { passed: false, reason: 'no owner' } };
+  const result = evaluate({ deterministicChecks, modelChecks: allEpicModelChecksPassed }, 'epic');
+  assert.equal(result.gateFailed, true);
+  assert.ok(result.failed.some((f) => f.id === 'epic-owner' && f.required));
+});
+
+test('evaluate: a fully passing epic scores 100 across the enlarged criteria set', () => {
+  const result = evaluate(
+    { deterministicChecks: allEpicChecksPassed, modelChecks: allEpicModelChecksPassed },
+    'epic'
+  );
+  assert.equal(result.score, 100);
+  assert.equal(result.gateFailed, false);
+  assert.equal(result.max, 113); // 15+15+10+17+8+8 (previous 6) + 10*4 (new) = 113
 });
 
 // ---------------------------------------------------------------------------

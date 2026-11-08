@@ -580,6 +580,86 @@ export function checkStoryList(body) {
   };
 }
 
+/**
+ * checkEpicContext(body) – Same contract as checkContext: product and target group must be named.
+ * Operator and platforms are recommended but not required (see epic-context in epic-check-criteria.json).
+ */
+export function checkEpicContext(body) {
+  return checkContext(body);
+}
+
+/**
+ * checkEpicBoundary(body) – Prüft, ob In-Scope und Out-of-Scope benannt sind, jeweils mit Inhalt.
+ */
+export function checkEpicBoundary(body) {
+  if (!body) {
+    return { passed: false, reason: "Body is empty" };
+  }
+
+  const inScope = getSection(body, ["in\\s*scope", "in-scope"]);
+  const outOfScope = getSection(body, ["out\\s*of\\s*scope", "out-of-scope"]);
+
+  // "Meaningful" means more than a bare heading or a placeholder like "TBD".
+  const hasContent = (section) => section !== null && wordCount(section) >= 3;
+
+  if (!hasContent(inScope) || !hasContent(outOfScope)) {
+    const missing = [
+      !hasContent(inScope) ? "in-scope" : null,
+      !hasContent(outOfScope) ? "out-of-scope" : null,
+    ].filter(Boolean).join(" and ");
+    return {
+      passed: false,
+      reason: `No explicit ${missing} boundary found. Add 'In Scope' and 'Out of Scope' sections with at least one concrete item each.`,
+    };
+  }
+
+  return { passed: true, evidence: "In-scope and out-of-scope boundary found" };
+}
+
+/**
+ * checkEpicOwner(body) – Prüft, ob ein verantwortlicher Owner mit Rolle/Team benannt ist.
+ */
+export function checkEpicOwner(body) {
+  if (!body) {
+    return { passed: false, reason: "Body is empty" };
+  }
+
+  const section = getSection(body, ["owner"]);
+
+  if (section === null || wordCount(section) === 0) {
+    return {
+      passed: false,
+      reason: "No owner found. Name one accountable owner with a role or team (e.g., 'Owner: Jane Doe, Platform Team').",
+    };
+  }
+
+  return { passed: true, evidence: `Owner found: ${section.split("\n")[0].trim()}` };
+}
+
+/**
+ * checkEpicStakeholders(body) – Prüft, ob mindestens eine Stakeholder-Gruppe benannt ist.
+ */
+export function checkEpicStakeholders(body) {
+  if (!body) {
+    return { passed: false, reason: "Body is empty" };
+  }
+
+  const section = getSection(body, ["stakeholders?"]);
+
+  if (section === null || wordCount(section) === 0) {
+    return {
+      passed: false,
+      reason: "No stakeholders found. Name at least one stakeholder group or person (e.g., 'Stakeholders: Support, Finance').",
+    };
+  }
+
+  const items = countBullets(section);
+  return {
+    passed: true,
+    evidence: items > 0 ? `${items} stakeholder group(s) listed` : `Stakeholders found: ${section.split("\n")[0].trim()}`,
+  };
+}
+
 
 // ---------------------------------------------------------------------------
 // Helpers: whole-word matching and label/heading detection

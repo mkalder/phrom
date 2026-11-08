@@ -293,6 +293,10 @@ Rechenbeispiel, Issue #3 (10/100): Nur `story-links` bestehen, weil der body nic
 | `size-risk` (S oder M)                                            | KI    |     17 |   ✅    |
 | `epic-goal` (Ziel beschreibt ein Ergebnis, keine Aktivität)       | KI    |      8 |   ✅    |
 | `epic-benefit` (Nutzen nachvollziehbar, idealerweise messbar)     | KI    |      8 |   ✅    |
+| `epic-context` (Produkt und Zielgruppe sind benannt)              | Regel |     10 |   ✅    |
+| `epic-boundary` (explizite In-Scope- und Out-of-Scope-Abschnitte) | Regel |     10 |   ✅    |
+| `epic-owner` (ein verantwortlicher Owner mit Rolle oder Team)     | Regel |     10 |   ✅    |
+| `epic-stakeholders` (mindestens eine Stakeholder-Gruppe benannt)  | Regel |     10 |   ✅    |
 
 #### **Task**
 
@@ -321,7 +325,7 @@ Rechenbeispiel, Issue #3 (10/100): Nur `story-links` bestehen, weil der body nic
 | `severity` (Critical/Major/Minor, durch genannten Impact begründet) | KI    |     10 |   ✅    |
 | `reproducibility` (Always/Sometimes/Rarely)                         | KI    |     10 |    –    |
 
-Epic summiert auf 73 Punkte, Bug auf 105 Punkte. Scores werden deshalb auf 100 normiert (erreichte ÷ erreichbare Punkte). Stories und Tasks summieren auf 100 Punkte; dort ändert die Normierung nichts.
+Epic summiert auf 113 Punkte, Bug auf 105 Punkte. Scores werden deshalb auf 100 normiert (erreichte ÷ erreichbare Punkte). Stories und Tasks summieren auf 100 Punkte; dort ändert die Normierung nichts.
 
 </details>
 
@@ -565,6 +569,7 @@ Phrom ist zugleich ein Demonstrationsprojekt. Es zeigt ein KI-gestütztes Tool m
 - ADR-002: [Separate Repositories for Code and Demo Backlog](adr/en/ADR-002-separate-repositories.en.md)
 - ADR-003: [CLI Pipeline with Rules Engine, Local AI, and Human-in-the-Loop](adr/en/ADR-003-cli-pipeline-architecture.en.md)
 - ADR-004: [Seed and Reset Scripts for the Demo Backlog](adr/en/ADR-004-seed-and-reset-scripts.en.md)
+- ADR-005: [Closing the Epic Criteria Coverage Gap](adr/en/ADR-005-epic-criteria-coverage.en.md)
 
 ### Zielgruppe
 

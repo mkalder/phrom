@@ -4,6 +4,7 @@
 **Date:** 2026-10-08 (document revision; first published for 0.3.1 on 2026-10-07)
 **Changes from 0.3.0:** descriptions and pass conditions in the JSON files now match the implementation; points and required flags are unchanged.
 **Document revision 2026-10-08:** examples and limitations are based on the test day of 2026-10-08; the exact trigger conditions of `technical-scope` and `impact-analysis` and their known side effects are documented. Criteria, points and required flags are unchanged.
+**Epic criteria extended 2026-11-08:** four new deterministic criteria (`epic-context`, `epic-boundary`, `epic-owner`, `epic-stakeholders`) were added to Epic; its total points rose from 73 to 113. See [ADR-005](../adr/en/ADR-005-epic-criteria-coverage.en.md).
 **Scope:** Pre-refinement assessment of GitHub Issues
 
 This document describes what Phrom checks, how the score is calculated, and when an issue is considered "Ready." It is **not a Definition of Done** and does not decide sprint readiness. The criteria themselves are stored in machine-readable form in `references/criteria/*.json`, from which point weights and required flags are read.
@@ -67,7 +68,7 @@ Example from the test day of 2026-10-08: issue #19 has no label and was classifi
 
 - A criterion awards its points either fully or not at all.
 - Only criteria that are implemented (`implemented` is not `false`) and carry points are achievable.
-- The sum of points per type is stored in `scoring.totalPoints` in the respective JSON file. Story and Task total 100, Epic totals 73, and Bug totals 105; the score is therefore normalized to 100.
+- The sum of points per type is stored in `scoring.totalPoints` in the respective JSON file. Story and Task total 100, Epic totals 113, and Bug totals 105; the score is therefore normalized to 100.
 
 **Ready Gate:** A result must exist for every required criterion **and** it must pass. If a result is missing, for example because Ollama is unavailable, the criterion is considered not passed. The issue is then marked as 🔴.
 
@@ -90,7 +91,7 @@ Because `story-links` always passes for a non-empty body, a Story with a passed 
 | --- | ---: | ---: | ---: | :---: |
 | Story | 47 | 100 | 47% | ✅ |
 | Task | 90 | 100 | 90% | – |
-| Epic | 73 | 73 | 100% | – |
+| Epic | 113 | 113 | 100% | – |
 | Bug | 85 | 105 | 81% | – |
 
 ---
@@ -141,7 +142,7 @@ Stories can exist without an epic, for example bug fixes, spikes, or small featu
 | `severity` | AI | 10 | ✅ |
 | `reproducibility` | AI | 10 | – |
 
-### Epic (73 points, normalized to 100)
+### Epic (113 points, normalized to 100)
 
 | Criterion | Type | Points | Required |
 | --- | --- | ---: | :---: |
@@ -151,6 +152,10 @@ Stories can exist without an epic, for example bug fixes, spikes, or small featu
 | `size-risk` | AI | 17 | ✅ |
 | `epic-goal` | AI | 8 | ✅ |
 | `epic-benefit` | AI | 8 | ✅ |
+| `epic-context` | Rule | 10 | ✅ |
+| `epic-boundary` | Rule | 10 | ✅ |
+| `epic-owner` | Rule | 10 | ✅ |
+| `epic-stakeholders` | Rule | 10 | ✅ |
 
 ---
 
@@ -211,6 +216,14 @@ Known side effect: the word "rollback" alone triggers the second step, so an iss
 **`benefit-statement`** passes if a benefit section (Benefit, Value, Impact, Outcome as heading or label) containing at least five words is present, or the text contains "benefit is/will be". Only structure is checked; whether the benefit is understandable is assessed by `epic-benefit` (AI). Quantification is output as a hint.
 
 **`story-list`** passes if at least **two** issue references (`#n`) occur in the body or a section named "Stories", "Child Stories", "Candidate Stories", or "Slices" contains at least **two** list items.
+
+**`epic-context`** shares `story-context`'s contract and implementation (`checkContext`): a product and a target group must be named as whole words. As with Story, incidental matches (for example "portal" and "customer" occurring anywhere in the text) are sufficient; no explicit "Context" section is required.
+
+**`epic-boundary`** passes if both an "In Scope" and an "Out of Scope" section (heading or label) are present and each contains at least three words of real content.
+
+**`epic-owner`** passes if an "Owner" section (heading or label) is present and non-empty. A role or team name is expected (for example "Owner: Jane Doe, Platform Team") but is not parsed separately from the rest of the section.
+
+**`epic-stakeholders`** passes if a "Stakeholders" section (heading or label) is present and non-empty. One or more stakeholder groups can be listed, for example as bullets.
 
 ---
 
@@ -291,7 +304,7 @@ A Story passes everything except `ac-testability` (17 points, required). Its sco
 - **Keywords:** Product and target group are recognized through word lists; whole words, plural forms, and German endings are tolerated. A product not included in the list, for example "Dashboard," is not recognized and causes `story-context` to fail.
 - **Languages:** Formats and keywords are designed for German and English.
 - **Epic link:** The existence of the epic and the backlink in GitHub are not verified.
-- **AI assessments** are reasoned opinions. They can be wrong, and their quality depends on the model. On the test day of 2026-10-08, the rule-based checks matched the 18-issue seed test set exactly (18/18 issues, 31/31 expected gaps, no additional findings). With AI, all 45 checkable expected gaps were found, none of the 5 control issues was flagged, and there were 15 additional findings on weak issues. Four further expected Epic gaps have no criterion yet (see Planned Criteria). The prompts were tuned on the same issues; an independent test set is outstanding.
+- **AI assessments** are reasoned opinions. They can be wrong, and their quality depends on the model. On the test day of 2026-10-08, the rule-based checks matched the 18-issue seed test set exactly (18/18 issues, 31/31 expected gaps, no additional findings). With AI, all 45 checkable expected gaps were found, none of the 5 control issues was flagged, and there were 15 additional findings on weak issues. One further expected Epic gap has no criterion yet (success measure; see Planned Criteria). The prompts were tuned on the same issues; an independent test set is outstanding.
 - **AI reasons can drift from the criterion:** for example, a missing statement can be read as "no risk" (`technical-feasibility` passed for #9 because "no external dependencies or risks are mentioned"), or a missing label can be judged as a process problem (`rollback-risk` for #19).
 - **Reason texts are not evaluated:** the evaluation checks which criteria fail, not whether the reason shown is correct (see `technical-scope` and `impact-analysis` above).
 - **No failure status:** If the model fails, the issue is fail-closed as 🔴. A separate `incomplete` status is planned.
@@ -308,7 +321,7 @@ These criteria are described in `references/criteria/*.json` with `implemented: 
 | Story | `independence` (overlap with other Stories through similarity search) |
 | Task | `task-context`, `task-dependencies` |
 | Bug | `bug-impact` |
-| Epic | `epic-context`, `epic-boundary`, `epic-success-measure`, `epic-slicing`, `epic-owner`, `epic-stakeholders`, `epic-company-goal`, `epic-milestones`, `epic-timeline`, `epic-risks`, `epic-dependencies`, `epic-child-story-status` |
+| Epic | `epic-success-measure`, `epic-slicing`, `epic-company-goal`, `epic-milestones`, `epic-timeline`, `epic-risks`, `epic-dependencies`, `epic-child-story-status` |
 
 Further planned rules from the JSON files:
 

@@ -26,6 +26,10 @@ import {
   checkGoalStatement,
   checkBenefitStatement,
   checkStoryList,
+  checkEpicContext,
+  checkEpicBoundary,
+  checkEpicOwner,
+  checkEpicStakeholders,
 } from '../src/checks.js';
 
 // ---------------------------------------------------------------------------
@@ -287,4 +291,47 @@ test('checkStoryList: fails with fewer than 2 child-story references', () => {
 
 test('checkStoryList: passes with at least 2 child-story references', () => {
   assert.equal(checkStoryList('Child stories: #4, #5, #6.').passed, true);
+});
+
+// ---------------------------------------------------------------------------
+// checkEpicContext / checkEpicBoundary / checkEpicOwner / checkEpicStakeholders
+// ---------------------------------------------------------------------------
+
+test('checkEpicContext: shares checkContext\'s contract (product and target group required)', () => {
+  assert.equal(checkEpicContext('No product or audience named.').passed, false);
+  assert.equal(checkEpicContext('Context: Customer Portal, residential customers.').passed, true);
+});
+
+test('checkEpicBoundary: fails with no in-scope/out-of-scope sections', () => {
+  assert.equal(checkEpicBoundary('We will modernize the portal.').passed, false);
+});
+
+test('checkEpicBoundary: fails when only one side of the boundary is present', () => {
+  const result = checkEpicBoundary('**In Scope:** Invoice overview and PDF download.');
+  assert.equal(result.passed, false);
+  assert.match(result.reason, /out-of-scope/);
+});
+
+test('checkEpicBoundary: passes with both in-scope and out-of-scope content', () => {
+  const body = '**In Scope:** Invoice overview and PDF download.\n\n**Out of Scope:** Payment collection and dunning.';
+  assert.equal(checkEpicBoundary(body).passed, true);
+});
+
+test('checkEpicOwner: fails with no owner named', () => {
+  assert.equal(checkEpicOwner('We will modernize the portal.').passed, false);
+});
+
+test('checkEpicOwner: passes with an owner named by role or team', () => {
+  const result = checkEpicOwner('**Owner:** Jane Doe, Product Owner, Billing Platform team.');
+  assert.equal(result.passed, true);
+  assert.match(result.evidence, /Jane Doe/);
+});
+
+test('checkEpicStakeholders: fails with no stakeholders named', () => {
+  assert.equal(checkEpicStakeholders('We will modernize the portal.').passed, false);
+});
+
+test('checkEpicStakeholders: passes with at least one stakeholder group named', () => {
+  const result = checkEpicStakeholders('**Stakeholders:** Customer Support, Billing Operations, Finance.');
+  assert.equal(result.passed, true);
 });

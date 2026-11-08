@@ -293,6 +293,10 @@ Worked example, issue #3 (10/100): Only `story-links` passes, because the body i
 | `size-risk` (S or M)                                           | AI   |     17 |    ✅    |
 | `epic-goal` (goal describes an outcome, not an activity)       | AI   |      8 |    ✅    |
 | `epic-benefit` (benefit is understandable, ideally measurable) | AI   |      8 |    ✅    |
+| `epic-context` (product and target group are named)             | Rule |     10 |    ✅    |
+| `epic-boundary` (explicit in-scope and out-of-scope sections)  | Rule |     10 |    ✅    |
+| `epic-owner` (one accountable owner named by role or team)     | Rule |     10 |    ✅    |
+| `epic-stakeholders` (at least one stakeholder group named)     | Rule |     10 |    ✅    |
 
 #### **Task**
 
@@ -321,7 +325,7 @@ Worked example, issue #3 (10/100): Only `story-links` passes, because the body i
 | `severity` (Critical/Major/Minor, justified by the stated impact) | AI   |     10 |    ✅    |
 | `reproducibility` (Always/Sometimes/Rarely)                       | AI   |     10 |    –     |
 
-Epic adds up to 73 points, bug to 105 points. Scores are therefore normalized to 100 (achieved ÷ achievable points). Stories and tasks add up to 100 points; there, normalization changes nothing.
+Epic adds up to 113 points, bug to 105 points. Scores are therefore normalized to 100 (achieved ÷ achievable points). Stories and tasks add up to 100 points; there, normalization changes nothing.
 
 </details>
 
@@ -565,6 +569,7 @@ Phrom is also a demonstration project. It shows an AI-assisted tool with a trans
 - ADR-002: [Separate Repositories for Code and Demo Backlog](adr/en/ADR-002-separate-repositories.en.md)
 - ADR-003: [CLI Pipeline with Rules Engine, Local AI, and Human-in-the-Loop](adr/en/ADR-003-cli-pipeline-architecture.en.md)
 - ADR-004: [Seed and Reset Scripts for the Demo Backlog](adr/en/ADR-004-seed-and-reset-scripts.en.md)
+- ADR-005: [Closing the Epic Criteria Coverage Gap](adr/en/ADR-005-epic-criteria-coverage.en.md)
 
 ### Target audience
 

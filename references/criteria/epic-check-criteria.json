@@ -3,7 +3,7 @@
   "artifactType": "epic-check-criteria",
   "scope": "Pre-refinement assessment of epic clarity and boundaries. This does not replace discovery, prioritization, or team estimation.",
   "scoring": {
-    "totalPoints": 73,
+    "totalPoints": 113,
     "formula": "score = round(earnedPoints / totalPoints * 100)",
     "note": "Criteria with implemented=false carry no points and do not affect score or ready gate."
   },
@@ -74,17 +74,17 @@
     },
     {
       "id": "epic-context",
-      "implemented": false,
       "check": "code",
       "required": true,
+      "points": 10,
       "description": "Names at least product and target group; operator and platforms are recommended.",
       "passCondition": "Product and target group are stated in structured context or clearly stated prose."
     },
     {
       "id": "epic-boundary",
-      "implemented": false,
       "check": "code",
       "required": true,
+      "points": 10,
       "description": "Has an explicit in-scope and out-of-scope boundary.",
       "passCondition": "Both sections are present and contain at least one meaningful item."
     },
@@ -106,17 +106,17 @@
     },
     {
       "id": "epic-owner",
-      "implemented": false,
       "check": "code",
       "required": true,
+      "points": 10,
       "description": "Names one accountable owner for the epic.",
       "passCondition": "An owner is explicitly named with a role or team."
     },
     {
       "id": "epic-stakeholders",
-      "implemented": false,
       "check": "code",
       "required": true,
+      "points": 10,
       "description": "Names the relevant stakeholder groups or people.",
       "passCondition": "At least one stakeholder group is explicitly named; impacted or approving stakeholders should be identifiable."
     },
@@ -181,7 +181,6 @@
       "title": "Modernize the portal",
       "body": "The customer portal should be modern and better.",
       "expectedFlags": [
-        "epic-context",
         "epic-goal",
         "epic-benefit",
         "epic-boundary",

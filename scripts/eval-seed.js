@@ -46,6 +46,10 @@ const SPEC_TO_KEY = {
         'epic-slicing': 'story-list',
         'epic-oversize-risk': 'size-risk',
         'size-risk': 'size-risk',
+        'epic-context': 'epic-context',
+        'epic-boundary': 'epic-boundary',
+        'epic-owner': 'epic-owner',
+        'epic-stakeholders': 'epic-stakeholders',
     },
 };
 

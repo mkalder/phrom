@@ -32,6 +32,10 @@ import {
   checkGoalStatement,
   checkBenefitStatement,
   checkStoryList,
+  checkEpicContext,
+  checkEpicBoundary,
+  checkEpicOwner,
+  checkEpicStakeholders,
 } from "./checks.js";
 import { runModelChecks, inferType } from "./model.js";
 import { generateMarkdownReport, generateSummaryReport } from "./report.js";
@@ -89,6 +93,10 @@ export function runDeterministicChecks(issue, type) {
       "goal-statement": checkGoalStatement(issue.body),
       "benefit-statement": checkBenefitStatement(issue.body),
       "story-list": checkStoryList(issue.body),
+      "epic-context": checkEpicContext(issue.body),
+      "epic-boundary": checkEpicBoundary(issue.body),
+      "epic-owner": checkEpicOwner(issue.body),
+      "epic-stakeholders": checkEpicStakeholders(issue.body),
     };
   }
 
@@ -175,6 +183,10 @@ const SUMMARY_PHRASES = {
   "story-list": "no child stories listed",
   "epic-goal": "epic goal unclear",
   "epic-benefit": "epic benefit unclear",
+  "epic-context": "no context (product and target group)",
+  "epic-boundary": "no scope boundary (in/out of scope)",
+  "epic-owner": "no owner named",
+  "epic-stakeholders": "no stakeholders named",
   "technical-scope": "unclear technical scope",
   "justification": "missing justification",
   "impact-analysis": "missing impact analysis",

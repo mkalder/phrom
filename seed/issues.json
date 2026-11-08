@@ -6,7 +6,7 @@
       "type:epic",
       "demo-seed"
     ],
-    "body": "**Goal:** Enable residential customers to independently find, view, and download their recent invoices in the customer portal.\n\n**Benefit:** Customers can obtain invoice copies without contacting support; support demand for invoice copies is expected to decrease.\n\n**Success Measure:** Validate whether invoice-copy contacts decrease after release; the target and measurement baseline must be agreed with the product team before use.\n\n**In Scope:** Invoice overview, invoice details, and PDF download for invoices that are already available in the billing system.\n\n**Out of Scope:** Creating invoices, payment collection, dunning, changing billing addresses, and invoices not available from the billing system.\n\n**Candidate Stories:**\n- Download an existing invoice as PDF\n- View the invoice overview\n- See an empty-state message when no invoice is available",
+    "body": "**Goal:** Enable residential customers to independently find, view, and download their recent invoices in the customer portal.\n\n**Benefit:** Customers can obtain invoice copies without contacting support; support demand for invoice copies is expected to decrease.\n\n**Owner:** Jane Doe, Product Owner, Billing Platform team.\n\n**Stakeholders:** Customer Support, Billing Operations, Finance.\n\n**Success Measure:** Validate whether invoice-copy contacts decrease after release; the target and measurement baseline must be agreed with the product team before use.\n\n**In Scope:** Invoice overview, invoice details, and PDF download for invoices that are already available in the billing system.\n\n**Out of Scope:** Creating invoices, payment collection, dunning, changing billing addresses, and invoices not available from the billing system.\n\n**Candidate Stories:**\n- Download an existing invoice as PDF\n- View the invoice overview\n- See an empty-state message when no invoice is available",
     "expected": {
       "type": "epic",
       "findings": [],
@@ -96,13 +96,14 @@
     "expected": {
       "type": "epic",
       "findings": [
-        "epic-context",
         "epic-goal",
         "epic-benefit",
         "epic-boundary",
         "epic-success-measure",
         "epic-slicing",
-        "epic-oversize-risk"
+        "epic-oversize-risk",
+        "epic-owner",
+        "epic-stakeholders"
       ],
       "note": "weak-epic"
     }
@@ -204,7 +205,10 @@
       "findings": [
         "epic-boundary",
         "epic-slicing",
-        "epic-oversize-risk"
+        "epic-oversize-risk",
+        "epic-context",
+        "epic-owner",
+        "epic-stakeholders"
       ],
       "note": "oversized-epic"
     }
