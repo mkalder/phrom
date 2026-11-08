@@ -5,6 +5,7 @@
 **Changes from 0.3.0:** descriptions and pass conditions in the JSON files now match the implementation; points and required flags are unchanged.
 **Document revision 2026-10-08:** examples and limitations are based on the test day of 2026-10-08; the exact trigger conditions of `technical-scope` and `impact-analysis` and their known side effects are documented. Criteria, points and required flags are unchanged.
 **Epic criteria extended 2026-11-08:** four new deterministic criteria (`epic-context`, `epic-boundary`, `epic-owner`, `epic-stakeholders`) were added to Epic; its total points rose from 73 to 113. See [ADR-005](../adr/en/ADR-005-epic-criteria-coverage.en.md).
+**AI backend switched 2026-11-08:** AI calls now go through an OpenAI-compatible endpoint (`LITELLM_HOST`, a self-hosted LiteLLM instance in this project's deployment) instead of a local Ollama host; `OLLAMA_HOST` and `top_k` are gone. See [ADR-006](../adr/en/ADR-006-litellm-backend.en.md).
 **Scope:** Pre-refinement assessment of GitHub Issues
 
 This document describes what Phrom checks, how the score is calculated, and when an issue is considered "Ready." It is **not a Definition of Done** and does not decide sprint readiness. The criteria themselves are stored in machine-readable form in `references/criteria/*.json`, from which point weights and required flags are read.
@@ -44,7 +45,7 @@ Phrom assesses each issue on two levels:
 There are two types of criteria:
 
 - **Deterministic (`code`):** Rule-based checks implemented in code, executed in milliseconds, and reproducible.
-- **AI (`model`):** A model served by Ollama provides a reasoned assessment. This is an assessment, not a fact.
+- **AI (`model`):** A model served through the configured LLM endpoint (`LITELLM_HOST`) provides a reasoned assessment. This is an assessment, not a fact.
 
 "Ready for refinement" is not the same as "ready for sprint planning." Phrom does not prioritize, estimate, or confirm technical feasibility.
 
@@ -70,7 +71,7 @@ Example from the test day of 2026-10-08: issue #19 has no label and was classifi
 - Only criteria that are implemented (`implemented` is not `false`) and carry points are achievable.
 - The sum of points per type is stored in `scoring.totalPoints` in the respective JSON file. Story and Task total 100, Epic totals 113, and Bug totals 105; the score is therefore normalized to 100.
 
-**Ready Gate:** A result must exist for every required criterion **and** it must pass. If a result is missing, for example because Ollama is unavailable, the criterion is considered not passed. The issue is then marked as 🔴.
+**Ready Gate:** A result must exist for every required criterion **and** it must pass. If a result is missing, for example because the configured LLM endpoint is unavailable, the criterion is considered not passed. The issue is then marked as 🔴.
 
 ```javascript
 function calculateStatus(score, gateFailed) {
@@ -229,16 +230,16 @@ Known side effect: the word "rollback" alone triggers the second step, so an iss
 
 ## AI Checks
 
-AI checks run through the Ollama server at `OLLAMA_HOST` (default `http://127.0.0.1:11434`) with the model in `MODEL_NAME` (default `qwen3:30b-instruct`). Content stays on the machine only if the host is local and the model is not an Ollama cloud model.
+AI checks run through the OpenAI-compatible endpoint in `LITELLM_HOST` (no default; must be set) with the model in `MODEL_NAME` (default `qwen3:30b-instruct`). `LITELLM_HOST` is always reached over the network. Content stays only within infrastructure you operate if you self-host that endpoint and the model behind it; it does not stay "on this machine" the way a local Ollama setup did. See [ADR-006](../adr/en/ADR-006-litellm-backend.en.md).
 
 **Technical details:**
 
 - Responses are JSON according to a fixed schema (Structured Output), with no free-text parsing.
-- `temperature: 0`, `top_k: 1`, and `seed: 42` are used for as consistent results as possible on the same setup. There is no bit-exact guarantee across hardware or model versions.
+- `temperature: 0` and `seed: 42` are used for as consistent results as possible on the same setup. There is no bit-exact guarantee across hardware or model versions. The previous Ollama-based setup also sent `top_k: 1`; the OpenAI-compatible API used since [ADR-006](../adr/en/ADR-006-litellm-backend.en.md) has no equivalent parameter, so it is no longer sent, and whether `temperature: 0` plus `seed` alone reproduce comparable determinism has not been re-measured.
 - Up to two retries are attempted on errors, with a 2 s and 4 s wait time respectively.
 - Each check returns a short reason in the language of the issue.
 - Prompts for `size-risk`, `technical-feasibility`, and `severity` instruct the model to assess only the issue text and not assume technologies or platforms that are not mentioned.
-- If Ollama fails, AI results are missing. Required criteria are then treated as not passed (fail-closed).
+- If the configured LLM endpoint fails, AI results are missing. Required criteria are then treated as not passed (fail-closed).
 
 | Criterion | Types | Passes when … |
 | --- | --- | --- |
@@ -327,4 +328,4 @@ Further planned rules from the JSON files:
 
 - **Three-valued result** (`plannedResultValues`: `pass`, `flag`, `not-assessable`) instead of `pass / fail`.
 - **Evidence requirement** (`plannedRequireEvidence`): The AI cites the passage on which its assessment is based.
-- **Status `incomplete`** (`plannedAssessmentIncomplete`, Epic) when Ollama is unavailable or AI checks fail; such a run must be repeated.
+- **Status `incomplete`** (`plannedAssessmentIncomplete`, Epic) when the configured LLM endpoint is unavailable or AI checks fail; such a run must be repeated.

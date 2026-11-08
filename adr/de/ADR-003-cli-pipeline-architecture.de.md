@@ -1,6 +1,6 @@
 # ADR-003: CLI-Pipeline mit Regelwerk, lokaler KI und Human-in-the-Loop
 
-- **Status:** Angenommen (ergänzt 2026-10-07: Ollama-Host-Konfiguration, Grenzen der Entwürfe, gemessene Laufzeit; Laufzeit aktualisiert 2026-10-08)
+- **Status:** Angenommen (ergänzt 2026-10-07: Ollama-Host-Konfiguration, Grenzen der Entwürfe, gemessene Laufzeit; Laufzeit aktualisiert 2026-10-08. Der Teil "Local AI through Ollama" dieser Entscheidung wird am 2026-11-08 durch [ADR-006](ADR-006-litellm-backend.de.md) abgelöst: KI-Aufrufe laufen jetzt über einen selbst betriebenen LiteLLM-Endpoint, nicht mehr über einen lokalen Ollama-Host. Die Entscheidungen zu CLI-Pipeline, Regel-Engine und Human-in-the-Loop unten bleiben unverändert.)
 - **Datum:** 2026-10-07
 - **Entscheider:** Marius Kalder (Product Owner / Autor von Phrom)
 - **Geltungsbereich:** Gesamtarchitektur von `phrom` (CLI, Regelwerk, KI-Integration, Ausgabe und Review-Schritt)

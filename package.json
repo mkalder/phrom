@@ -9,7 +9,7 @@
     "phrom": "./src/cli.js"
   },
   "type": "module",
-  "description": "A CLI pipeline that checks GitHub Issues against a rule set before backlog refinement, combining deterministic rules with local AI checks.",
+  "description": "A CLI pipeline that checks GitHub Issues against a rule set before backlog refinement, combining deterministic rules with AI checks via a configurable OpenAI-compatible endpoint.",
   "main": "index.js",
   "directories": {
     "doc": "doc"
@@ -40,7 +40,6 @@
   "dependencies": {
     "@octokit/rest": "^22.0.1",
     "commander": "^15.0.0",
-    "dotenv": "^18.0.5",
-    "ollama": "^0.6.4"
+    "dotenv": "^18.0.5"
   }
 }

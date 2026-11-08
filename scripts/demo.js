@@ -5,7 +5,7 @@ import path from 'node:path';
 import { exec } from 'node:child_process';
 import { promisify } from 'node:util';
 import { printBanner } from './banner.js';
-import { OLLAMA_HOST, MODEL_NAME, describeAiEndpoint } from '../src/ollama-client.js';
+import { LITELLM_HOST, MODEL_NAME, describeAiEndpoint } from '../src/llm-client.js';
 
 const execAsync = promisify(exec);
 
@@ -313,8 +313,8 @@ function hidePlaceholderSections(text) {
 
 const githubOwner = process.env.GITHUB_OWNER;
 const githubRepo = process.env.GITHUB_REPO;
-// Same host and model as the AI checks themselves (src/ollama-client.js).
-const ollamaHost = OLLAMA_HOST;
+// Same host and model as the AI checks themselves (src/llm-client.js).
+const llmHost = LITELLM_HOST;
 const modelName = MODEL_NAME;
 
 const isDemoRepo = githubOwner === 'MKalder' && githubRepo === 'phrom-backlog-demo';
@@ -324,12 +324,10 @@ const repoLabel = isDemoRepo
         ? `${githubOwner}/${githubRepo}`
         : 'not configured';
 
-const aiEndpoint = describeAiEndpoint(ollamaHost, modelName);
-const ollamaHostname = aiEndpoint.hostname;
+const aiEndpoint = describeAiEndpoint(llmHost, modelName);
+const llmHostname = aiEndpoint.hostname;
 const isLocalAI = aiEndpoint.isLocal;
-const remoteNote = aiEndpoint.cloudModel
-    ? `cloud model ${modelName} (runs on ollama.com)`
-    : `Ollama @ ${ollamaHostname || ollamaHost} (remote host)`;
+const remoteNote = `${llmHostname || llmHost} (remote host)`;
 
 let octokit = null;
 let resolvedModel = modelName;
@@ -358,7 +356,7 @@ console.log(`  Repository  ${repoLabel}`);
 console.log('  Mode        read-only');
 console.log(
     isLocalAI
-        ? `  AI          local (Ollama) ${dim('· no backlog data sent to a cloud LLM')}\n`
+        ? `  AI          local ${dim('· no backlog data sent off this machine')}\n`
         : `  AI          ${remoteNote} ${dim('· issue content leaves this machine')}\n`
 );
 
@@ -393,29 +391,33 @@ if (githubOwner && githubRepo) {
     addCheck('GitHub', 'fail', 'skipped (environment incomplete)');
 }
 
-// --- 3. Ollama ---
-let ollamaModels = null;
+// --- 3. LiteLLM endpoint ---
+let llmModels = null;
 try {
-    const response = await fetch(`${ollamaHost}/api/tags`, { signal: AbortSignal.timeout(3000) });
+    if (!llmHost) throw new Error('LITELLM_HOST not set');
+    const response = await fetch(`${llmHost}/v1/models`, {
+        headers: process.env.LITELLM_API_KEY ? { Authorization: `Bearer ${process.env.LITELLM_API_KEY}` } : {},
+        signal: AbortSignal.timeout(3000),
+    });
     if (!response.ok) throw new Error(`HTTP ${response.status}`);
     const data = await response.json();
-    ollamaModels = data.models || [];
-    addCheck('Ollama', 'ok', ollamaHost);
-} catch {
-    addCheck('Ollama', 'fail', `not reachable at ${ollamaHost}`);
+    llmModels = data.data || [];
+    addCheck('LiteLLM', 'ok', llmHost);
+} catch (error) {
+    addCheck('LiteLLM', 'fail', `not reachable at ${llmHost || '(not set)'}: ${error.message}`);
 }
 
 // --- 4. AI model ---
-if (ollamaModels) {
-    const installed = ollamaModels.find((m) => m.name.includes(modelName));
+if (llmModels) {
+    const installed = llmModels.find((m) => m.id.includes(modelName));
     if (installed) {
-        resolvedModel = installed.name;
-        addCheck(modelName, 'ok', 'available locally');
+        resolvedModel = installed.id;
+        addCheck(modelName, 'ok', 'available through LiteLLM');
     } else {
-        addCheck(modelName, 'warn', `not found – run: ollama pull ${modelName}`);
+        addCheck(modelName, 'warn', `not found in LiteLLM's model list – check its config`);
     }
 } else {
-    addCheck(modelName, 'warn', 'not checked (Ollama unreachable)');
+    addCheck(modelName, 'warn', 'not checked (LiteLLM unreachable)');
 }
 
 // --- Results: compact on success, detailed on problems or --verbose ---
@@ -721,7 +723,7 @@ if (formalKnown) {
 if (analysisResults.length > 0) {
     console.log(
         isLocalAI
-            ? `\n  ${SYMBOL.ok} AI ran locally – no issue data was sent to a cloud LLM.`
+            ? `\n  ${SYMBOL.ok} AI ran locally – no issue data left this machine.`
             : `\n  ${SYMBOL.warn} AI did not run locally: ${remoteNote}.`
     );
 }

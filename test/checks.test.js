@@ -1,7 +1,7 @@
 // test/checks.test.js
 //
 // Unit tests for the deterministic (rule-based, no AI) checks in src/checks.js.
-// These functions are pure: same input, same output, no network, no Ollama — ideal for CI.
+// These functions are pure: same input, same output, no network, no LLM calls — ideal for CI.
 //
 // Two tests below (marked "Regression:") pin down known weaknesses documented in
 // audit/release-fixes/discovery/evidenz-2026-10-08.md (P-6, P-7). They describe the CURRENT

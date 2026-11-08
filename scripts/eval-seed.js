@@ -4,7 +4,7 @@
 // GitHub) and compares the gaps found with `expected.findings`.
 //
 //   node scripts/eval-seed.js                 deterministic checks only (fast, reproducible)
-//   node scripts/eval-seed.js --ai            full pipeline incl. AI checks (Ollama, several minutes)
+//   node scripts/eval-seed.js --ai            full pipeline incl. AI checks (via LITELLM_HOST, several minutes)
 //   node scripts/eval-seed.js --file=path     other seed file
 //   node scripts/eval-seed.js --json          also write output/eval-seed-<time>.json
 //

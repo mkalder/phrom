@@ -5,6 +5,7 @@
 **Änderungen gegenüber 0.3.0:** Beschreibungen und Bestehensbedingungen in den JSON-Dateien entsprechen jetzt der Implementierung; Punkte und Pflichtmarkierungen sind unverändert.
 **Überarbeitung des Dokuments am 2026-10-08:** Beispiele und Grenzen beruhen auf dem Testtag vom 2026-10-08; die genauen Auslösebedingungen von `technical-scope` und `impact-analysis` und ihre bekannten Nebenwirkungen sind dokumentiert. Kriterien, Punkte und Pflichtmarkierungen sind unverändert.
 **Epic-Kriterien erweitert am 2026-11-08:** Vier neue deterministische Kriterien (`epic-context`, `epic-boundary`, `epic-owner`, `epic-stakeholders`) wurden zu Epic hinzugefügt; die Punktsumme stieg von 73 auf 113. Siehe [ADR-005](../adr/en/ADR-005-epic-criteria-coverage.en.md).
+**KI-Backend gewechselt am 2026-11-08:** KI-Aufrufe laufen jetzt über einen OpenAI-kompatiblen Endpoint (`LITELLM_HOST`, im Deployment dieses Projekts eine selbst betriebene LiteLLM-Instanz) statt über einen lokalen Ollama-Host; `OLLAMA_HOST` und `top_k` entfallen. Siehe [ADR-006](../adr/en/ADR-006-litellm-backend.en.md).
 **Geltungsbereich:** Bewertung von GitHub Issues vor dem Refinement
 
 Dieses Dokument beschreibt, was Phrom prüft, wie der Score berechnet wird und wann ein Issue als „Ready“ gilt. Es ist **keine Definition of Done** und entscheidet nicht über die Sprint-Reife. Die Kriterien selbst liegen maschinenlesbar in `references/criteria/*.json`; von dort werden Punktgewichte und Pflichtmarkierungen gelesen.
@@ -44,7 +45,7 @@ Phrom bewertet jedes Issue auf zwei Ebenen:
 Es gibt zwei Arten von Kriterien:
 
 - **Deterministisch (`code`):** Regelbasierte Checks, in Code implementiert, in Millisekunden ausgeführt und reproduzierbar.
-- **KI (`model`):** Ein über Ollama bereitgestelltes Modell liefert eine begründete Einschätzung. Das ist eine Einschätzung, keine Tatsache.
+- **KI (`model`):** Ein über den konfigurierten LLM-Endpoint (`LITELLM_HOST`) bereitgestelltes Modell liefert eine begründete Einschätzung. Das ist eine Einschätzung, keine Tatsache.
 
 „Bereit fürs Refinement“ ist nicht dasselbe wie „bereit fürs Sprint Planning“. Phrom priorisiert nicht, schätzt nicht und bestätigt keine technische Machbarkeit.
 
@@ -70,7 +71,7 @@ Beispiel vom Testtag am 2026-10-08: Issue #19 hat kein Label, wurde vom Modell a
 - Erreichbar sind nur Kriterien, die implementiert sind (`implemented` ist nicht `false`) und Punkte tragen.
 - Die Punktsumme je Typ steht in `scoring.totalPoints` der jeweiligen JSON-Datei. Story und Task ergeben 100, Epic 113 und Bug 105 Punkte; der Score wird daher auf 100 normiert.
 
-**Ready Gate:** Für jedes Pflichtkriterium muss ein Ergebnis vorliegen, **und** es muss bestehen. Fehlt ein Ergebnis, etwa weil Ollama nicht erreichbar ist, gilt das Kriterium als nicht bestanden. Das Issue wird dann als 🔴 markiert.
+**Ready Gate:** Für jedes Pflichtkriterium muss ein Ergebnis vorliegen, **und** es muss bestehen. Fehlt ein Ergebnis, etwa weil der konfigurierte LLM-Endpoint nicht erreichbar ist, gilt das Kriterium als nicht bestanden. Das Issue wird dann als 🔴 markiert.
 
 ```javascript
 function calculateStatus(score, gateFailed) {
@@ -229,16 +230,16 @@ Bekannte Nebenwirkung: Das Wort „rollback“ allein löst den zweiten Schritt 
 
 ## KI-Checks
 
-KI-Checks laufen über den Ollama-Server unter `OLLAMA_HOST` (Standard `http://127.0.0.1:11434`) mit dem Modell in `MODEL_NAME` (Standard `qwen3:30b-instruct`). Inhalte bleiben nur dann auf dem Rechner, wenn der Host lokal ist und das Modell kein Ollama-Cloud-Modell ist.
+KI-Checks laufen über den OpenAI-kompatiblen Endpoint in `LITELLM_HOST` (kein Standardwert; muss gesetzt sein) mit dem Modell in `MODEL_NAME` (Standard `qwen3:30b-instruct`). `LITELLM_HOST` wird immer über das Netzwerk erreicht. Inhalte bleiben nur innerhalb von Infrastruktur, die du selbst betreibst, wenn du diesen Endpoint und das dahinterliegende Modell selbst hostest; sie bleiben nicht „auf diesem Rechner“, wie es ein lokales Ollama-Setup tat. Siehe [ADR-006](../adr/en/ADR-006-litellm-backend.en.md).
 
 **Technische Details:**
 
 - Antworten sind JSON nach einem festen Schema (Structured Output), ohne Freitext-Parsing.
-- `temperature: 0`, `top_k: 1` und `seed: 42` werden verwendet, um auf demselben Setup möglichst konsistente Ergebnisse zu erhalten. Eine bitgenaue Garantie über Hardware oder Modellversionen hinweg gibt es nicht.
+- `temperature: 0` und `seed: 42` werden verwendet, um auf demselben Setup möglichst konsistente Ergebnisse zu erhalten. Eine bitgenaue Garantie über Hardware oder Modellversionen hinweg gibt es nicht. Das vorherige, Ollama-basierte Setup sendete zusätzlich `top_k: 1`; die seit [ADR-006](../adr/en/ADR-006-litellm-backend.en.md) genutzte OpenAI-kompatible API hat dafür kein Äquivalent, es wird also nicht mehr gesendet, und ob `temperature: 0` plus `seed` allein eine vergleichbare Determinismus erreichen, ist nicht neu gemessen.
 - Bei Fehlern werden bis zu zwei Wiederholungen versucht, mit 2 s bzw. 4 s Wartezeit.
 - Jeder Check liefert eine kurze Begründung in der Sprache des Issues.
 - Die Prompts für `size-risk`, `technical-feasibility` und `severity` weisen das Modell an, nur den Issue-Text zu bewerten und keine Technologien oder Plattformen anzunehmen, die nicht genannt sind.
-- Fällt Ollama aus, fehlen die KI-Ergebnisse. Pflichtkriterien gelten dann als nicht bestanden (fail-closed).
+- Fällt der konfigurierte LLM-Endpoint aus, fehlen die KI-Ergebnisse. Pflichtkriterien gelten dann als nicht bestanden (fail-closed).
 
 | Kriterium | Typen | Besteht, wenn … |
 | --- | --- | --- |
@@ -327,4 +328,4 @@ Weitere geplante Regeln aus den JSON-Dateien:
 
 - **Dreiwertiges Ergebnis** (`plannedResultValues`: `pass`, `flag`, `not-assessable`) statt `pass / fail`.
 - **Belegpflicht** (`plannedRequireEvidence`): Die KI zitiert die Textstelle, auf der ihre Bewertung beruht.
-- **Status `incomplete`** (`plannedAssessmentIncomplete`, Epic), wenn Ollama nicht erreichbar ist oder KI-Checks fehlschlagen; ein solcher Lauf muss wiederholt werden.
+- **Status `incomplete`** (`plannedAssessmentIncomplete`, Epic), wenn der konfigurierte LLM-Endpoint nicht erreichbar ist oder KI-Checks fehlschlagen; ein solcher Lauf muss wiederholt werden.

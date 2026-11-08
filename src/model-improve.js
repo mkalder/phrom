@@ -3,28 +3,21 @@
  * LLM-powered improvement suggestions AND complete issue draft.
  */
 
-import { ollama, MODEL_NAME } from './ollama-client.js';
+import { chatCompletion } from './llm-client.js';
 
 /**
- * Runs a generation as a stream and returns the complete text.
+ * Runs a generation and returns the complete text.
  *
- * Why streaming: a non-streaming call only returns response headers after the whole text is
- * generated. Node's fetch (undici) aborts if no headers arrive within 5 minutes ("fetch failed"),
- * which long drafts on slower hardware exceed. With a stream, data flows from the first token.
+ * Uses the same chat-completions endpoint as model.js, with a single user message instead of a
+ * raw prompt string: the OpenAI-compatible API has no separate "completion" endpoint for a bare
+ * prompt the way Ollama's /api/generate did, so every call goes through chat completions now.
  */
 async function generateText(prompt, options, format) {
-  const stream = await ollama.generate({
-    model: MODEL_NAME,
-    prompt,
+  const text = await chatCompletion({
+    messages: [{ role: 'user', content: prompt }],
+    format,
     options,
-    stream: true,
-    ...(format ? { format } : {}),
   });
-
-  let text = '';
-  for await (const part of stream) {
-    text += part.response ?? '';
-  }
   return text.trim();
 }
 

@@ -1,6 +1,6 @@
 # ADR-003: CLI Pipeline with Rules Engine, Local AI, and Human-in-the-Loop
 
-- **Status:** Accepted (amended 2026-10-07: Ollama host configuration, draft limitations, measured runtime; runtime updated 2026-10-08)
+- **Status:** Accepted (amended 2026-10-07: Ollama host configuration, draft limitations, measured runtime; runtime updated 2026-10-08. The "Local AI through Ollama" part of this decision is superseded 2026-11-08 by [ADR-006](ADR-006-litellm-backend.en.md): AI calls now go through a self-hosted LiteLLM endpoint, not a local Ollama host. The CLI pipeline, rules engine, and Human-in-the-Loop decisions below are unchanged.)
 - **Date:** 2026-10-07
 - **Decision-maker:** Marius Kalder (Product Owner / Author of Phrom)
 - **Scope:** Overall architecture of `phrom` (CLI, rules engine, AI integration, output, and review step)

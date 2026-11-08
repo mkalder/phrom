@@ -15,7 +15,7 @@
       "not-assessable"
     ],
     "readyGate": "An epic cannot be 'Ready' if any required criterion is 'flag' or 'not-assessable'.",
-    "assessmentIncomplete": "If Ollama is unavailable or model checks fail, assessment status is 'incomplete' and must be retried."
+    "assessmentIncomplete": "If the configured LLM endpoint is unavailable or model checks fail, assessment status is 'incomplete' and must be retried."
   },
   "criteria": [
     {

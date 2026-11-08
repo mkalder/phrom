@@ -2,7 +2,7 @@
 
 **Eine schreibgeschützte CLI, die GitHub Issues vor dem Backlog Refinement prüft und Verbesserungsvorschläge erstellt, die der Product Owner reviewt.**
 
-**Phrom** (พร้อม, Thai für „bereit“) soll Product Ownern formale Vorarbeit abnehmen. Es prüft Issues gegen ein transparentes, versioniertes Regelwerk, bewertet, ob ein Item die Kriterien für das Refinement erfüllt (`phrom run`), und erstellt auf Anforderung einen Verbesserungsentwurf (`phrom improve`). KI-Prüfungen laufen über [Ollama](https://ollama.com) auf einem von dir konfigurierten Host; in der Standardkonfiguration ist das derselbe Rechner, auf dem Phrom läuft, und Backlog-Inhalte werden nicht an einen LLM-Anbieter übertragen. Die Analyse verändert GitHub Issues nie: Der Product Owner prüft jeden Vorschlag und übernimmt ihn manuell.
+**Phrom** (พร้อม, Thai für „bereit“) soll Product Ownern formale Vorarbeit abnehmen. Es prüft Issues gegen ein transparentes, versioniertes Regelwerk, bewertet, ob ein Item die Kriterien für das Refinement erfüllt (`phrom run`), und erstellt auf Anforderung einen Verbesserungsentwurf (`phrom improve`). KI-Prüfungen laufen über einen von dir konfigurierten, OpenAI-kompatiblen Endpoint (`LITELLM_HOST`) — im eigenen Deployment dieses Projekts eine selbst betriebene [LiteLLM](https://www.litellm.ai)-Instanz; siehe [Datenschutz und Sicherheit](#datenschutz-und-sicherheit) dafür, was das genau garantiert und was nicht, bezogen auf wohin Backlog-Inhalte gehen. Die Analyse verändert GitHub Issues nie: Der Product Owner prüft jeden Vorschlag und übernimmt ihn manuell.
 
 > **Status:** MVP, Version 1.0.0, Regelwerk 0.3.1. Die beschriebenen Funktionen sind implementiert. Die regelbasierten Prüfungen wurden offline gegen ein Testset mit 18 Issues ausgewertet; die KI-Prüfungen wurden mit den Erwartungen desselben Testsets verglichen. Alle Zahlen stammen aus dem Testtag vom 08.10.2026; Seed-Evaluation und `phrom run` gegen das Demo-Repository liefern dort identische Ergebnisse. Das ist keine unabhängige Messung. **Ob Phrom Product Ownern im echten Arbeitsalltag nützt, ist noch nicht untersucht**, siehe [Stand der Validierung](#stand-der-validierung). Bekannte Lücken stehen unter [Einschränkungen und Roadmap](#einschränkungen-und-roadmap).
 
@@ -70,10 +70,15 @@ Fehlende Informationen wie Rolle, Nutzen und Kontext erscheinen als Platzhalter 
 ### Voraussetzungen
 
 - Node.js ≥ 22 und npm ≥ 10
-- [Ollama](https://ollama.com) mit [`qwen3:30b-instruct`](https://ollama.com/library/qwen3:30b-instruct). Das dokumentierte Testsystem verwendete Ollama 0.22.1.
-- Arbeitsspeicher für das Modell: etwa 19 GB (Quantisierung Q4_K_M, 18 GB auf der Festplatte). Siehe [Laufzeiten](#laufzeiten) für das Testsystem.
+- Ein OpenAI-kompatibler Endpoint für KI-Checks (`LITELLM_HOST`). Es gibt keinen rein lokalen Standardwert; siehe [ADR-006](adr/en/ADR-006-litellm-backend.en.md).
+- Das in `MODEL_NAME` konfigurierte Modell (Standard `qwen3:30b-instruct`) muss über diesen Endpoint erreichbar sein.
+- Falls du das Modell selbst betreibst (z. B. [Ollama](https://ollama.com) hinter deiner eigenen LiteLLM-Instanz): Arbeitsspeicher für das Modell etwa 19 GB (Quantisierung Q4_K_M, 18 GB auf der Festplatte). Siehe [Laufzeiten](#laufzeiten) für das dokumentierte Testsystem, das noch das vorherige, direkte Ollama-Setup gemessen hat.
 
-### 1. Ollama installieren
+### 1. Einen OpenAI-kompatiblen Endpoint einrichten
+
+Phrom spricht die OpenAI-Chat-Completions-API (`/v1/chat/completions`), nicht Ollamas native API direkt. Du brauchst etwas, das diese API unter `LITELLM_HOST` bereitstellt. Die einfachste selbst betriebene Option ist [LiteLLM](https://www.litellm.ai) selbst, als Proxy betrieben; siehe LiteLLMs eigene Dokumentation zur Installation und Konfiguration (pip, Docker oder eine gemanagte Instanz).
+
+LiteLLM kann zu einem Cloud-Anbieter routen oder zu einem selbst betriebenen, lokal laufenden Modell. Damit Backlog-Inhalte wie im vorherigen, direkten Ollama-Setup auf einem Rechner bleiben, zeigt deine LiteLLM-Instanz auf ein lokales [Ollama](https://ollama.com):
 
 ```bash
 # Ollama installieren (Linux/macOS)
@@ -88,7 +93,7 @@ ollama run qwen3:30b-instruct "Hello! What does phrom in thai mean and by the wa
 
 Eine Beispielantwort steht in [docs/qwen3/output.md](docs/qwen3/output.md). Die Antwort des Modells variiert von Lauf zu Lauf.
 
-Unter Linux läuft Ollama nach der Installation in der Regel als Systemdienst. Starte `ollama serve` nur, wenn der Dienst nicht aktiv ist.
+Unter Linux läuft Ollama nach der Installation in der Regel als Systemdienst. Starte `ollama serve` nur, wenn der Dienst nicht aktiv ist. Konfiguriere danach deine LiteLLM-Instanz so, dass sie `MODEL_NAME` auf dieses lokale Ollama routet; siehe [ADR-006](adr/en/ADR-006-litellm-backend.en.md), was das garantiert und was nicht, bezogen auf wohin Inhalte gehen.
 
 ### 2. Phrom installieren
 
@@ -113,7 +118,8 @@ Werte für die Demo in `.env`:
 ```bash
 GITHUB_OWNER=MKalder
 GITHUB_REPO=phrom-backlog-demo
-OLLAMA_HOST=http://localhost:11434
+LITELLM_HOST=https://your-litellm-host.example.com
+LITELLM_API_KEY=your-litellm-api-key
 MODEL_NAME=qwen3:30b-instruct
 
 #GITHUB_TOKEN=github_pat_your_token_here
@@ -125,7 +131,7 @@ npm run demo
 
 Die Demo:
 
-1. prüft Umgebung, GitHub, Ollama und Modell (Preflight),
+1. prüft Umgebung, GitHub, den LiteLLM-Endpoint und das Modell (Preflight),
 2. führt die formale Vorprüfung (`phrom status`) über das Backlog aus und zeigt, wie viele Issues alle formalen Checks bestehen,
 3. analysiert zwei Stories mit KI (zwei Aufrufe von `phrom select`): die mit den meisten formalen Lücken und die formal beste,
 4. erstellt für die erste einen Verbesserungsentwurf (`phrom improve n1`) und zeigt ihn als **Vorher → Nachher**.
@@ -171,9 +177,12 @@ Ein Token in `GITHUB_TOKEN` hebt das Limit an. Ein Login mit `gh auth login` rei
    GITHUB_OWNER=dein-username
    GITHUB_REPO=mein-backlog
 
-   OLLAMA_HOST=http://localhost:11434
+   LITELLM_HOST=https://your-litellm-host.example.com
+   LITELLM_API_KEY=your-litellm-api-key
    MODEL_NAME=qwen3:30b-instruct
    ```
+
+   `LITELLM_HOST` muss auf einen OpenAI-kompatiblen Endpoint zeigen (eine selbst betriebene LiteLLM-Instanz, die wiederum auf ein lokales Ollama routen kann). Es gibt keinen rein lokalen Standardwert mehr; siehe [ADR-006](adr/en/ADR-006-litellm-backend.en.md).
 
 4. **Optional: Demo-Backlog in dein Repository einspielen.** Seeding ist ein Schreibvorgang. Es läuft über die GitHub CLI mit einem eigenen Login und nutzt nie `GITHUB_TOKEN`:
 
@@ -333,7 +342,7 @@ Epic summiert auf 113 Punkte, Bug auf 105 Punkte. Scores werden deshalb auf 100 
 
 ## Architektur
 
-Eine CLI-Pipeline mit Regelwerk, KI-Prüfungen über Ollama und einem Human-in-the-Loop-Schritt.
+Eine CLI-Pipeline mit Regelwerk, KI-Prüfungen über einen OpenAI-kompatiblen LLM-Endpoint und einem Human-in-the-Loop-Schritt.
 
 ```txt
 PO
@@ -348,7 +357,7 @@ Node.js CLI (phrom)
  │   ├── Deterministische Checks ─► checks.js
  │   └── Score + Ready Gate ──────► agent.js (evaluate; historischer Dateiname)
  │
- ├── AI Engine ───────────────────► model.js → ollama-client.js → Ollama (OLLAMA_HOST)
+ ├── AI Engine ───────────────────► model.js → llm-client.js → LiteLLM (LITELLM_HOST, OpenAI-kompatibel)
  │
  ├── Improvement Engine ──────────► improve.js → model-improve.js
  │   └── Referenzbeispiele ───────► references/quality/*.json
@@ -389,8 +398,8 @@ Phrom trifft **keine** Entscheidungen über:
 
 ## Datenschutz und Sicherheit
 
-- **Wo die KI läuft:** Jeder KI-Aufruf geht an den Ollama-Server unter `OLLAMA_HOST` (Standard: `http://127.0.0.1:11434`) mit dem Modell in `MODEL_NAME`. Bei einem lokalen Host und lokal ausgeführtem Modell bleiben Backlog-Inhalte auf deinem Rechner und werden nicht an einen LLM-Anbieter übertragen.
-- **Wann Inhalte den Rechner verlassen:** Zeigt `OLLAMA_HOST` auf einen anderen Rechner oder ist `MODEL_NAME` ein Ollama-Cloud-Modell (Suffix `:cloud` / `-cloud`, Ausführung auf ollama.com), werden Issue-Inhalte dorthin übertragen. Die Demo erkennt beide Fälle und bezeichnet sie nicht als „local“.
+- **Wo die KI läuft:** Jeder KI-Aufruf geht an den OpenAI-kompatiblen Endpoint in `LITELLM_HOST`, mit dem Modell in `MODEL_NAME`. Es gibt keinen rein lokalen Standardwert: `LITELLM_HOST` muss gesetzt sein und wird immer über das Netzwerk erreicht, auch wenn du ihn selbst betreibst. Im eigenen Deployment dieses Projekts zeigt `LITELLM_HOST` auf eine selbst betriebene LiteLLM-Instanz des Autors; das hält den Modellaufruf innerhalb von Infrastruktur, die der Autor kontrolliert, ist aber nicht dieselbe Aussage wie „bleibt auf diesem Rechner“ (siehe [ADR-006](adr/en/ADR-006-litellm-backend.en.md)).
+- **Wann Inhalte den Rechner verlassen:** Issue-Inhalte verlassen immer den Rechner, auf dem Phrom läuft, und erreichen, worauf `LITELLM_HOST` zeigt. Ob das innerhalb von Infrastruktur bleibt, die du kontrollierst, oder einen Drittanbieter erreicht, hängt allein von deiner eigenen LiteLLM-Konfiguration ab; Phrom kann den Unterschied nicht erkennen und versucht es auch nicht. Wenn Backlog-Inhalte auf einem Rechner bleiben sollen, zeige dein eigenes `LITELLM_HOST` auf eine LiteLLM-Instanz, die selbst nur mit einem lokalen Ollama auf demselben Rechner spricht. Die Demo meldet in jedem Fall den Hostnamen des Endpoints und bezeichnet einen entfernten Host nicht als „local“.
 - **GitHub-Lesezugriffe:** Phrom liest Issues aus deinem Repository über die GitHub REST API. Die Analyse-Pipeline (`src/`) enthält keine Funktion, die nach GitHub schreibt. Schreibschutz ist aber kein allgemeiner Datenschutz: siehe die folgenden Punkte zu Tokens und `output/`.
 - **Minimale Rechte:** Für ein privates Repository genügt ein Fine-grained Personal Access Token für dieses eine Repository mit _Issues: Read-only_ (`GITHUB_TOKEN`). Öffentliche Repositories brauchen keinen Token; ohne Token gilt das niedrigere API-Limit.
 - **Getrennter Schreibzugriff:** Die Seed-Skripte sind getrennte Hilfswerkzeuge und die einzigen Schreibvorgänge. Sie laufen über die GitHub CLI, entfernen `GITHUB_TOKEN` aus deren Umgebung und nutzen das Konto aus `gh auth login`. Der Analyse-Token wird nie für Schreibzugriffe verwendet.
@@ -451,7 +460,7 @@ Phrom beruht auf der Hypothese, dass ein lokal betriebenes Modell für inhaltlic
 - Es gibt 15 zusätzliche Befunde, alle aus KI-Kriterien und alle bei ohnehin schwachen Issues. Acht folgen zwingend aus den Kriteriendefinitionen (ein Issue ohne Akzeptanzkriterien fällt auch bei `ac-testability` durch), vier sind inhaltlich berechtigt, drei sind Urteilssache. Die Seed-Erwartungen sind an diesen Stellen unvollständig.
 - 10 von 18 Issues entsprechen exakt den Erwartungen. Würden die acht zwingenden Folgebefunde in die Erwartungen aufgenommen, wären es 13 von 18.
 
-**Reproduzierbarkeit:** Die KI-Prüfungen laufen mit Temperatur 0, `top_k` 1 und festem Seed. Am 2026-10-08 lieferten die Seed-Evaluation (liest `seed/issues.json`) und `phrom run` (liest das Demo-Repository über die GitHub-API) für alle 18 gemeinsamen Issues identische Scores, Status und Befunde. Neun Wiederholungen einzelner Issues über `select`, `improve` und die Demo waren bis auf den Zeitstempel identisch. Das gilt für identische Eingabe auf demselben System. Wie stark Urteile nahe einer Schwelle auf andere Formulierungen reagieren, ist nicht gemessen.
+**Reproduzierbarkeit:** Am 2026-10-08 lieferten unter dem damals genutzten, Ollama-basierten Setup (Temperatur 0, `top_k` 1, fester Seed) die Seed-Evaluation (liest `seed/issues.json`) und `phrom run` (liest das Demo-Repository über die GitHub-API) für alle 18 gemeinsamen Issues identische Scores, Status und Befunde. Neun Wiederholungen einzelner Issues über `select`, `improve` und die Demo waren bis auf den Zeitstempel identisch. Das gilt für identische Eingabe auf demselben System. Seit [ADR-006](adr/en/ADR-006-litellm-backend.en.md) laufen KI-Aufrufe über einen selbst betriebenen LiteLLM-Endpoint mit Temperatur 0 und festem Seed, aber ohne `top_k` (kein Äquivalent in der OpenAI-kompatiblen API); diese Reproduzierbarkeits-Messung wurde unter diesem Setup nicht wiederholt. Wie stark Urteile nahe einer Schwelle auf andere Formulierungen reagieren, ist ebenfalls nicht gemessen.
 
 **Warum das keine unabhängige Messung ist:**
 
@@ -520,11 +529,11 @@ Die Runde dient dazu, Annahmen zu prüfen und die nächste Produktentscheidung v
 - **Entwürfe können vorhandene Fakten verlieren:** Im Entwurf zu #11 wurden der vorhandene Kontext („Self-Service Customer Portal, residential customers, part of Epic #1“) und die Rolle „customer“ durch Platzhalter ersetzt, bei #5 ebenfalls die Rolle. Jeder Entwurf muss deshalb auch gegen das Original geprüft werden.
 - **Feste Beispieltexte:** Der Standardvorschlag zu `ac-testability` bei Stories nennt immer einen PDF-Download, auch bei Login oder Kontoeinstellungen.
 - **Entwürfe schwanken:** Checks laufen mit Temperatur 0, Entwürfe mit 0,3. Zwei Läufe können unterschiedliche Entwürfe liefern; wie stark, ist nicht gemessen.
-- **Kein Status pro Issue:** Es gibt keinen Status `pending`, `running`, `done`, `failed` oder `incomplete`. Fällt Ollama aus, wird das Issue fail-closed als 🔴 geführt, und der Report sagt, dass die KI-Checks nicht gelaufen sind.
+- **Kein Status pro Issue:** Es gibt keinen Status `pending`, `running`, `done`, `failed` oder `incomplete`. Fällt der konfigurierte LLM-Endpoint aus, wird das Issue fail-closed als 🔴 geführt, und der Report sagt, dass die KI-Checks nicht gelaufen sind.
 - **Kein Resume:** KI-Aufrufe werden zweimal wiederholt, nach 2 s und 4 s. Ein fehlgeschlagenes Issue wird nicht erneut versucht, und ein abgestürzter `phrom run` startet wieder von vorne.
 - **Issue-Nummern:** Reports und Befehle verwenden GitHub-Issue-Nummern, die sich nach einem Reset des Demo-Repositories ändern.
 - **Statische Referenzen:** Improvements nutzen feste Referenz-JSON-Dateien, keine Ähnlichkeitssuche. Passt das Beispiel inhaltlich nicht zum Issue (z. B. eine ausgearbeitete Datenbankmigration als Vorlage für ein Issue aus einem einzigen Satz), steigt das Risiko übernommener Inhalte.
-- **Konfiguration über JSON und `.env`:** Kriterien, Pflichtmarkierungen und Referenzbeispiele liegen in `references/criteria/*.json` und `references/quality/*.json`; das Modell wird über `MODEL_NAME` festgelegt (Standard: `qwen3:30b-instruct`).
+- **Konfiguration über JSON und `.env`:** Kriterien, Pflichtmarkierungen und Referenzbeispiele liegen in `references/criteria/*.json` und `references/quality/*.json`; das Modell wird über `MODEL_NAME` festgelegt (Standard: `qwen3:30b-instruct`), aufgelöst gegen den OpenAI-kompatiblen Endpoint in `LITELLM_HOST`.
 - **Keine UI:** Nur CLI und Markdown-Reports.
 
 ### Roadmap
@@ -570,6 +579,7 @@ Phrom ist zugleich ein Demonstrationsprojekt. Es zeigt ein KI-gestütztes Tool m
 - ADR-003: [CLI Pipeline with Rules Engine, Local AI, and Human-in-the-Loop](adr/en/ADR-003-cli-pipeline-architecture.en.md)
 - ADR-004: [Seed and Reset Scripts for the Demo Backlog](adr/en/ADR-004-seed-and-reset-scripts.en.md)
 - ADR-005: [Closing the Epic Criteria Coverage Gap](adr/en/ADR-005-epic-criteria-coverage.en.md)
+- ADR-006: [Switching the AI Backend from Local Ollama to a Self-Hosted LiteLLM Endpoint](adr/en/ADR-006-litellm-backend.en.md)
 
 ### Zielgruppe
 

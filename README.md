@@ -2,7 +2,7 @@
 
 **A read-only CLI that checks GitHub issues before backlog refinement and creates improvement suggestions for the Product Owner to review.**
 
-**Phrom** (พร้อม, Thai for "ready") is meant to take formal preparation work off Product Owners. It checks issues against a transparent, versioned rule set, assesses whether an item meets the criteria for refinement (`phrom run`), and creates an improvement draft on request (`phrom improve`). AI checks run via [Ollama](https://ollama.com) on a host you configure; in the default configuration, this is the same machine Phrom runs on, and backlog content is not sent to an LLM provider. The analysis never changes GitHub issues: the Product Owner reviews every suggestion and applies it manually.
+**Phrom** (พร้อม, Thai for "ready") is meant to take formal preparation work off Product Owners. It checks issues against a transparent, versioned rule set, assesses whether an item meets the criteria for refinement (`phrom run`), and creates an improvement draft on request (`phrom improve`). AI checks run through an OpenAI-compatible endpoint you configure (`LITELLM_HOST`) — in this project's own deployment, a self-hosted [LiteLLM](https://www.litellm.ai) instance; see [Privacy and security](#privacy-and-security) for exactly what that does and does not guarantee about where backlog content goes. The analysis never changes GitHub issues: the Product Owner reviews every suggestion and applies it manually.
 
 > **Status:** MVP, version 1.0.0, rule set 0.3.1. The described features are implemented. The rule-based checks were evaluated offline against a test set of 18 issues; the AI checks were compared with the expectations of the same test set. All numbers come from the test day of 2026-10-08; on that day, the seed evaluation and `phrom run` against the demo repository produce identical results. This is not an independent measurement. **Whether Phrom is useful to Product Owners in real day-to-day work has not yet been studied**, see [Validation status](#validation-status). Known gaps are listed under [Limitations and roadmap](#limitations-and-roadmap).
 
@@ -70,10 +70,15 @@ Missing information such as role, benefit and context appears as placeholders in
 ### Prerequisites
 
 - Node.js ≥ 22 and npm ≥ 10
-- [Ollama](https://ollama.com) with [`qwen3:30b-instruct`](https://ollama.com/library/qwen3:30b-instruct). The documented test system used Ollama 0.22.1.
-- Memory for the model: about 19 GB (quantization Q4_K_M, 18 GB on disk). See [Run times](#run-times) for the test system.
+- An OpenAI-compatible endpoint for AI checks (`LITELLM_HOST`). There is no local-only default; see [ADR-006](adr/en/ADR-006-litellm-backend.en.md).
+- The model configured in `MODEL_NAME` (default `qwen3:30b-instruct`) must be reachable through that endpoint.
+- If you self-host the model (e.g. [Ollama](https://ollama.com) behind your own LiteLLM instance): memory for the model is about 19 GB (quantization Q4_K_M, 18 GB on disk). See [Run times](#run-times) for the documented test system, which measured the previous, direct-Ollama setup.
 
-### 1. Install Ollama
+### 1. Set up an OpenAI-compatible endpoint
+
+Phrom speaks the OpenAI chat-completions API (`/v1/chat/completions`), not Ollama's native API directly. You need something that serves that API at `LITELLM_HOST`. The simplest self-hosted option is [LiteLLM](https://www.litellm.ai) itself, run as a proxy; see LiteLLM's own documentation for installing and configuring it (pip, Docker, or a managed instance).
+
+LiteLLM can route to a cloud provider, or to your own locally run model. To keep backlog content on one machine, the same way the previous direct-Ollama setup did, point your LiteLLM instance at a local [Ollama](https://ollama.com):
 
 ```bash
 # Install Ollama (Linux/macOS)
@@ -88,7 +93,7 @@ ollama run qwen3:30b-instruct "Hello! What does phrom in thai mean and by the wa
 
 An example response is in [docs/qwen3/output.md](docs/qwen3/output.md). The model's response varies from run to run.
 
-On Linux, Ollama usually runs as a system service after installation. Only start `ollama serve` if the service is not running.
+On Linux, Ollama usually runs as a system service after installation. Only start `ollama serve` if the service is not running. Then configure your LiteLLM instance to route `MODEL_NAME` to this local Ollama; see [ADR-006](adr/en/ADR-006-litellm-backend.en.md) for what this does and does not guarantee about where content stays.
 
 ### 2. Install Phrom
 
@@ -113,7 +118,8 @@ Values for the demo in `.env`:
 ```bash
 GITHUB_OWNER=MKalder
 GITHUB_REPO=phrom-backlog-demo
-OLLAMA_HOST=http://localhost:11434
+LITELLM_HOST=https://your-litellm-host.example.com
+LITELLM_API_KEY=your-litellm-api-key
 MODEL_NAME=qwen3:30b-instruct
 
 #GITHUB_TOKEN=github_pat_your_token_here
@@ -125,7 +131,7 @@ npm run demo
 
 The demo:
 
-1. checks environment, GitHub, Ollama and model (preflight),
+1. checks environment, GitHub, the LiteLLM endpoint and model (preflight),
 2. runs the formal pre-check (`phrom status`) over the backlog and shows how many issues pass all formal checks,
 3. analyzes two stories with AI (two calls to `phrom select`): the one with the most formal gaps and the formally best one,
 4. creates an improvement draft for the first one (`phrom improve n1`) and shows it as **Before → After**.
@@ -171,9 +177,12 @@ A token in `GITHUB_TOKEN` raises the limit. Logging in with `gh auth login` is n
    GITHUB_OWNER=your-username
    GITHUB_REPO=my-backlog
 
-   OLLAMA_HOST=http://localhost:11434
+   LITELLM_HOST=https://your-litellm-host.example.com
+   LITELLM_API_KEY=your-litellm-api-key
    MODEL_NAME=qwen3:30b-instruct
    ```
+
+   `LITELLM_HOST` must point to an OpenAI-compatible endpoint (a LiteLLM instance you run, which can itself route to a local Ollama). There is no local-only default anymore; see [ADR-006](adr/en/ADR-006-litellm-backend.en.md).
 
 4. **Optional: seed the demo backlog into your repository.** Seeding is a write operation. It runs via the GitHub CLI with a separate login and never uses `GITHUB_TOKEN`:
 
@@ -333,7 +342,7 @@ Epic adds up to 113 points, bug to 105 points. Scores are therefore normalized t
 
 ## Architecture
 
-A CLI pipeline with a rule set, AI checks via Ollama and a human-in-the-loop step.
+A CLI pipeline with a rule set, AI checks via an OpenAI-compatible LLM endpoint and a human-in-the-loop step.
 
 ```txt
 PO
@@ -348,7 +357,7 @@ Node.js CLI (phrom)
  │   ├── Deterministic checks ────► checks.js
  │   └── Score + Ready Gate ──────► agent.js (evaluate; historical file name)
  │
- ├── AI Engine ───────────────────► model.js → ollama-client.js → Ollama (OLLAMA_HOST)
+ ├── AI Engine ───────────────────► model.js → llm-client.js → LiteLLM (LITELLM_HOST, OpenAI-compatible)
  │
  ├── Improvement Engine ──────────► improve.js → model-improve.js
  │   └── Reference examples ──────► references/quality/*.json
@@ -389,8 +398,8 @@ Phrom makes **no** decisions about:
 
 ## Privacy and security
 
-- **Where the AI runs:** Every AI call goes to the Ollama server at `OLLAMA_HOST` (default: `http://127.0.0.1:11434`) with the model in `MODEL_NAME`. With a local host and a locally run model, backlog content stays on your machine and is not sent to an LLM provider.
-- **When content leaves the machine:** If `OLLAMA_HOST` points to a different machine, or `MODEL_NAME` is an Ollama cloud model (suffix `:cloud` / `-cloud`, runs on ollama.com), issue content is sent there. The demo detects both cases and does not label them as "local".
+- **Where the AI runs:** Every AI call goes to the OpenAI-compatible endpoint in `LITELLM_HOST`, with the model in `MODEL_NAME`. There is no local-only default: `LITELLM_HOST` must be set, and it is always reached over the network, even when you operate it yourself. In this project's own deployment, `LITELLM_HOST` points to a self-hosted LiteLLM instance the author runs; that keeps the model call within infrastructure the author controls, but it is not the same claim as "stays on this machine" (see [ADR-006](adr/en/ADR-006-litellm-backend.en.md)).
+- **When content leaves the machine:** Issue content always leaves the machine running Phrom and reaches whatever `LITELLM_HOST` points to. Whether that stays within infrastructure you control, or reaches a third-party provider, depends entirely on your own LiteLLM configuration; Phrom cannot tell the difference and does not try to. If you want backlog content to stay on one machine, point your own `LITELLM_HOST` at a LiteLLM instance that itself talks only to a local Ollama on that same machine. The demo reports the endpoint's hostname either way and does not call a remote host "local".
 - **GitHub read access:** Phrom reads issues from your repository via the GitHub REST API. The analysis pipeline (`src/`) contains no function that writes to GitHub. But read-only access is not general data protection: see the following points on tokens and `output/`.
 - **Minimal permissions:** For a private repository, a fine-grained personal access token for this one repository with _Issues: Read-only_ (`GITHUB_TOKEN`) is enough. Public repositories need no token; without a token, the lower API limit applies.
 - **Separate write access:** The seed scripts are separate helper tools and the only write operations. They run via the GitHub CLI, remove `GITHUB_TOKEN` from its environment and use the account from `gh auth login`. The analysis token is never used for write access.
@@ -451,7 +460,7 @@ Phrom is based on the hypothesis that a locally run model is good enough for con
 - There are 15 additional findings, all from AI criteria and all for issues that are weak anyway. Eight follow necessarily from the criteria definitions (an issue without acceptance criteria also fails `ac-testability`), four are justified on the merits, three are a matter of judgment. The seed expectations are incomplete at these points.
 - 10 of 18 issues match the expectations exactly. If the eight necessary follow-on findings were added to the expectations, it would be 13 of 18.
 
-**Reproducibility:** The AI checks run with temperature 0, `top_k` 1 and a fixed seed. On 2026-10-08, the seed evaluation (reads `seed/issues.json`) and `phrom run` (reads the demo repository via the GitHub API) produced identical scores, statuses and findings for all 18 shared issues. Nine repetitions of individual issues via `select`, `improve` and the demo were identical except for the timestamp. This applies to identical input on the same system. How strongly judgments near a threshold react to different wording has not been measured.
+**Reproducibility:** On 2026-10-08, under the Ollama-based setup then in use (temperature 0, `top_k` 1, fixed seed), the seed evaluation (reads `seed/issues.json`) and `phrom run` (reads the demo repository via the GitHub API) produced identical scores, statuses and findings for all 18 shared issues. Nine repetitions of individual issues via `select`, `improve` and the demo were identical except for the timestamp. This applies to identical input on the same system. Since [ADR-006](adr/en/ADR-006-litellm-backend.en.md), AI calls go through a self-hosted LiteLLM endpoint with temperature 0 and a fixed seed, but no `top_k` (no equivalent in the OpenAI-compatible API); this reproducibility measurement has not been repeated under that setup. How strongly judgments near a threshold react to different wording has also not been measured.
 
 **Why this is not an independent measurement:**
 
@@ -520,11 +529,11 @@ The round serves to test assumptions and prepare the next product decision; it i
 - **Drafts can lose existing facts:** In the draft for #11, the existing context ("Self-Service Customer Portal, residential customers, part of Epic #1") and the role "customer" were replaced by placeholders; in #5, the role was replaced as well. Every draft must therefore also be checked against the original.
 - **Fixed example texts:** The default suggestion for `ac-testability` on stories always mentions a PDF download, even for login or account settings.
 - **Drafts vary:** Checks run at temperature 0, drafts at 0.3. Two runs can produce different drafts; how much they differ has not been measured.
-- **No per-issue status:** There is no status `pending`, `running`, `done`, `failed` or `incomplete`. If Ollama fails, the issue is recorded fail-closed as 🔴, and the report says that the AI checks did not run.
+- **No per-issue status:** There is no status `pending`, `running`, `done`, `failed` or `incomplete`. If the configured LLM endpoint fails, the issue is recorded fail-closed as 🔴, and the report says that the AI checks did not run.
 - **No resume:** AI calls are retried twice, after 2 s and 4 s. A failed issue is not retried later, and a crashed `phrom run` starts again from the beginning.
 - **Issue numbers:** Reports and commands use GitHub issue numbers, which change after a reset of the demo repository.
 - **Static references:** Improvements use fixed reference JSON files, not similarity search. If the example does not fit the content of the issue (e.g. a worked-out database migration as a template for an issue consisting of a single sentence), the risk of copied content increases.
-- **Configuration via JSON and `.env`:** Criteria, required flags and reference examples are in `references/criteria/*.json` and `references/quality/*.json`; the model is set via `MODEL_NAME` (default: `qwen3:30b-instruct`).
+- **Configuration via JSON and `.env`:** Criteria, required flags and reference examples are in `references/criteria/*.json` and `references/quality/*.json`; the model is set via `MODEL_NAME` (default: `qwen3:30b-instruct`), resolved against the OpenAI-compatible endpoint in `LITELLM_HOST`.
 - **No UI:** Only CLI and Markdown reports.
 
 ### Roadmap
@@ -570,6 +579,7 @@ Phrom is also a demonstration project. It shows an AI-assisted tool with a trans
 - ADR-003: [CLI Pipeline with Rules Engine, Local AI, and Human-in-the-Loop](adr/en/ADR-003-cli-pipeline-architecture.en.md)
 - ADR-004: [Seed and Reset Scripts for the Demo Backlog](adr/en/ADR-004-seed-and-reset-scripts.en.md)
 - ADR-005: [Closing the Epic Criteria Coverage Gap](adr/en/ADR-005-epic-criteria-coverage.en.md)
+- ADR-006: [Switching the AI Backend from Local Ollama to a Self-Hosted LiteLLM Endpoint](adr/en/ADR-006-litellm-backend.en.md)
 
 ### Target audience
 

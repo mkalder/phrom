@@ -1,13 +1,13 @@
 /**
- * model.js – Ollama wrapper for the AI checks (all issue types).
+ * model.js – AI checks for all issue types, via the shared chat-completions client.
  *
- * Uses the shared client from ollama-client.js, so OLLAMA_HOST and MODEL_NAME from .env
- * are the host and model that are actually called.
+ * Uses the shared client from llm-client.js, so LITELLM_HOST and MODEL_NAME from .env are the
+ * endpoint and model that are actually called (see ADR-006).
  *
  * Check names are identical to the criterion IDs (kebab-case).
  */
 
-import { ollama, MODEL_NAME } from "./ollama-client.js";
+import { chatCompletion, MODEL_NAME } from "./llm-client.js";
 import { loadCriteria } from "./criteria-loader.js";
 
 // Keeps judgments tied to the issue text: models otherwise reason from general knowledge
@@ -19,26 +19,11 @@ const GROUNDING =
  * askModel(prompt, schema) – Führt einen Modell-Call mit Structured Output aus.
  */
 async function askModel(prompt, schema) {
-  // Streaming: a non-streaming call only returns response headers once the whole answer exists.
-  // Node's fetch (undici) aborts after 5 minutes without headers ("fetch failed"), e.g. when the
-  // model has to be reloaded first or the machine is slow. A stream starts delivering immediately.
-  const stream = await ollama.chat({
-    model: MODEL_NAME,
+  const content = await chatCompletion({
     messages: [{ role: "user", content: prompt }],
     format: schema,
-    stream: true,
-    keep_alive: process.env.OLLAMA_KEEP_ALIVE || "30m", // default is 5 min, then the model is unloaded
-    options: {
-      temperature: 0,
-      top_k: 1,
-      seed: 42,
-    },
+    options: { temperature: 0, seed: 42 },
   });
-
-  let content = "";
-  for await (const part of stream) {
-    content += part.message?.content ?? "";
-  }
 
   return JSON.parse(content);
 }

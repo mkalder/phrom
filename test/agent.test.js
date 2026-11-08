@@ -2,7 +2,7 @@
 //
 // Unit tests for the scoring/status logic in src/agent.js: type detection, the deterministic-
 // check dispatch table, score/Ready-Gate calculation (evaluate), and the traffic-light status.
-// No network, no Ollama, no GitHub — these only need the criteria catalogs under references/criteria/,
+// No network, no LLM calls, no GitHub — these only need the criteria catalogs under references/criteria/,
 // which are checked into the repo, so they run the same in CI as on any machine.
 
 import test from 'node:test';
